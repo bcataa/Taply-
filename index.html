@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Taply – Link in Bio (free)</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+  </head>
+  <body>
+    <main class="app" id="app">
+      <!-- PAS 1: Alege username (după email, ca pe Linktree) -->
+      <div class="view view-username" id="viewUsername" hidden>
+        <a href="login.html?register=1" class="username-back">← Back</a>
+        <section class="username-panel">
+          <h1 class="username-title">Choose your username</h1>
+          <p class="username-subtitle">Pick something similar to your social handles so people can find you easily.</p>
+          <div class="username-input-wrap">
+            <span class="username-prefix" id="usernamePrefix">taply.ro/</span>
+            <input type="text" id="usernameInput" class="username-input" placeholder="your-username" maxlength="40" autocomplete="username" />
+          </div>
+          <button type="button" class="username-continue" id="usernameContinue">Continue</button>
+        </section>
+      </div>
+
+      <!-- ONBOARDING: temă, platforme, profil -->
+      <div class="view view-onboarding" id="viewOnboarding" hidden>
+        <header class="app-header">
+          <a href="landing.html" class="logo">Taply</a>
+          <nav class="steps" aria-label="Steps" id="onboardingSteps">
+            <span class="step is-active" data-step="1">1</span>
+            <span class="step" data-step="2">2</span>
+            <span class="step" data-step="3">3</span>
+          </nav>
+        </header>
+
+        <section class="panel is-active" data-step="1">
+          <h1>Choose a theme</h1>
+          <p class="subtitle">Pick a style. You can edit content later.</p>
+          <div class="theme-grid" id="onboardingThemes"></div>
+          <div class="panel-actions">
+            <button type="button" class="primary" data-next>Continue</button>
+          </div>
+        </section>
+
+        <section class="panel" data-step="2">
+          <h1>Which platforms are you on?</h1>
+          <p class="subtitle">Pick up to five. You can update anytime.</p>
+          <div class="platform-grid" id="onboardingPlatforms"></div>
+          <div class="panel-actions">
+            <button type="button" class="ghost" data-prev>Back</button>
+            <button type="button" class="primary" data-next>Continue</button>
+          </div>
+        </section>
+
+        <section class="panel" data-step="3">
+          <h1>Add profile details</h1>
+          <p class="subtitle">Add profile photo, name and bio.</p>
+          <div class="profile-card">
+            <div class="profile-avatar" id="onboardingAvatar" role="button" tabindex="0">
+              <img class="avatar-preview" id="onboardingAvatarPreview" alt="" hidden />
+              <span class="plus" aria-hidden="true">+</span>
+            </div>
+            <input type="file" accept="image/*" id="onboardingAvatarInput" hidden />
+            <div class="profile-fields">
+              <label class="field">
+                <span>Display Name</span>
+                <input type="text" id="onboardingDisplayName" placeholder="Display name" maxlength="50" />
+              </label>
+              <label class="field">
+                <span>Bio</span>
+                <textarea id="onboardingBio" placeholder="Write your bio" maxlength="160"></textarea>
+                <span class="counter" id="onboardingBioCounter">0/160</span>
+              </label>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="ghost" data-prev>Back</button>
+            <button type="button" class="primary" id="onboardingFinish">Continue</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- DASHBOARD: layout ca Linktree (sidebar + conținut + previzualizare) -->
+      <div class="view view-dashboard" id="viewDashboard" hidden>
+        <div class="dashboard-layout">
+          <!-- Sidebar stânga -->
+          <aside class="dashboard-sidebar">
+            <div class="sidebar-user-wrap">
+              <button type="button" class="sidebar-user-trigger" id="accountDropdownTrigger" aria-expanded="false" aria-haspopup="true" aria-label="Open account menu">
+                <div class="sidebar-user">
+                  <div class="sidebar-avatar" id="sidebarAvatar">
+                    <img id="sidebarAvatarImg" alt="" hidden />
+                    <span class="sidebar-avatar-placeholder" id="sidebarAvatarPlaceholder" aria-hidden="true">👤</span>
+                  </div>
+                  <span class="sidebar-username" id="sidebarUsername">—</span>
+                  <span class="sidebar-user-arrow" aria-hidden="true">▼</span>
+                </div>
+              </button>
+              <div class="sidebar-account-dropdown" id="accountDropdown" role="menu" aria-hidden="true">
+                <div class="dropdown-profile-block">
+                  <div class="dropdown-avatar" id="dropdownAvatar">
+                    <img id="dropdownAvatarImg" alt="" hidden />
+                    <span class="dropdown-avatar-placeholder" id="dropdownAvatarPlaceholder">👤</span>
+                  </div>
+                  <div class="dropdown-profile-info">
+                    <strong class="dropdown-username" id="dropdownUsername">—</strong>
+                    <a href="#" class="dropdown-profile-link" id="dropdownProfileLink" target="_blank" rel="noopener">taply.ro/...</a>
+                  </div>
+                  <span class="dropdown-pro-pill">Pro</span>
+                </div>
+                <div class="dropdown-divider"></div>
+                <a href="#profile" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">👤</span>Account</a>
+                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">⚡</span>Keep Pro access</a>
+                <div class="dropdown-divider"></div>
+                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">?</span>Ask a question</a>
+                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">📄</span>Help topics</a>
+                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">💡</span>Share feedback</a>
+                <div class="dropdown-divider"></div>
+                <button type="button" class="dropdown-logout" id="dropdownLogout" role="menuitem"><span class="dropdown-item-icon">↪</span>Log out</button>
+              </div>
+            </div>
+            <nav class="sidebar-nav">
+              <span class="sidebar-nav-title"><span class="sidebar-taply-logo" aria-hidden="true">T</span> Taply</span>
+              <a href="#links" class="sidebar-tab is-active"><span class="sidebar-tab-icon">📎</span>Links</a>
+              <a href="#theme" class="sidebar-tab"><span class="sidebar-tab-icon">🎨</span>Design</a>
+              <a href="#profile" class="sidebar-tab"><span class="sidebar-tab-icon">👤</span>Profile</a>
+              <a href="#platforms" class="sidebar-tab"><span class="sidebar-tab-icon">👥</span>Audience</a>
+              <a href="#analytics" class="sidebar-tab"><span class="sidebar-tab-icon">📊</span>Insights</a>
+            </nav>
+            <div class="sidebar-tools">
+              <span class="sidebar-nav-title">Tools</span>
+              <a href="#" class="sidebar-link"><span class="sidebar-tab-icon">🔗</span>Link shortener</a>
+            </div>
+            <div class="sidebar-checklist">
+              <p><strong>Checklist</strong></p>
+              <p class="sidebar-checklist-progress" id="setupProgress">0% · 0 of 4</p>
+              <a href="#links" class="sidebar-btn-setup">Complete setup</a>
+            </div>
+            <div class="sidebar-footer">
+              <button type="button" class="sidebar-logout" id="dashboardLogout">Log out</button>
+            </div>
+          </aside>
+
+          <!-- Zona centrală: Linkuri / Design / etc. -->
+          <main class="dashboard-main">
+            <section class="dashboard-panel is-active" id="panelLinks">
+              <div class="links-header">
+                <h2>Links</h2>
+                <div class="links-profile-strip" id="linksProfileStrip">
+                  <div class="links-strip-avatar" id="linksStripAvatar">
+                    <img id="linksStripAvatarImg" alt="" hidden />
+                  </div>
+                  <div class="links-strip-social" id="linksStripSocial"></div>
+                </div>
+                <button type="button" class="btn-add-link" id="addLink">+ Add</button>
+              </div>
+              <div class="link-cards" id="linkList"></div>
+              <div class="link-form-card" id="linkForm" hidden>
+                <label class="field field-checkbox"><input type="checkbox" id="linkTypeFriendly" /><span>Clickable image (friendly)</span></label>
+                <div id="linkFormNormal">
+                  <label class="field"><span>Icon</span><select id="linkIcon"><option value="">—</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="spotify">Spotify</option><option value="steam">Steam</option><option value="twitch">Twitch</option><option value="discord">Discord</option><option value="telegram">Telegram</option><option value="website">Website</option><option value="link">Link</option></select></label>
+                  <label class="field"><span>Title</span><input type="text" id="linkTitle" placeholder="e.g. YouTube" /></label>
+                  <label class="field"><span>URL</span><input type="url" id="linkUrl" placeholder="https://..." /></label>
+                </div>
+                <div id="linkFormFriendly" hidden>
+                  <label class="field"><span>Image URL</span><input type="url" id="linkImageUrl" placeholder="https://...image.jpg" /></label>
+                  <label class="field"><span>Link on click</span><input type="url" id="linkFriendlyUrl" placeholder="https://..." /></label>
+                </div>
+                <label class="field field-checkbox"><input type="checkbox" id="linkHighlight" /><span>Highlight</span></label>
+                <div class="form-actions">
+                  <button type="button" class="ghost" id="linkFormCancel">Cancel</button>
+                  <button type="button" class="primary" id="linkFormSave">Save</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="dashboard-panel" id="panelTheme">
+              <h2>Design</h2>
+              <p class="subtitle">Choose your page theme or add a custom background. You can change anytime: if you set a custom image, click a theme to switch back.</p>
+              <div class="theme-grid" id="dashboardThemes"></div>
+              <div class="custom-design-card-wrap" id="customDesignCardWrap">
+                <button type="button" class="theme-card custom-design-card" id="customDesignCard" aria-label="Add your design">
+                  <div class="theme-preview custom-design-card-preview">
+                    <div class="avatar"></div>
+                    <div class="line short"></div>
+                    <div class="chip-row"><span class="chip"></span><span class="chip"></span><span class="chip"></span></div>
+                    <span class="custom-design-card-text">Add your design</span>
+                    <div class="pill"></div><div class="pill"></div><div class="pill"></div>
+                  </div>
+                  <span>Add your design</span>
+                </button>
+              </div>
+            </section>
+
+            <div class="modal-overlay" id="customDesignModal" hidden aria-modal="true" role="dialog" aria-labelledby="customDesignModalTitle">
+              <div class="modal-box modal-box-design" id="customDesignModalBox">
+                <div class="modal-design-left">
+                  <h2 class="modal-title" id="customDesignModalTitle">Add your design</h2>
+                  <p class="modal-subtitle">Upload an image, then move the frame over it to choose which part shows on your site.</p>
+                  <div class="custom-design-options">
+                    <div class="field custom-design-upload">
+                      <span>From gallery</span>
+                      <label class="custom-design-upload-label">
+                        <input type="file" accept="image/*" id="customDesignFile" hidden />
+                        <span id="customDesignFileLabelText">Choose image</span>
+                      </label>
+                    </div>
+                    <label class="field">
+                      <span>Image URL</span>
+                      <input type="url" id="customDesignUrl" placeholder="https://example.com/image.jpg" />
+                    </label>
+                  </div>
+                  <div class="custom-design-preview" id="customDesignPreview" hidden>
+                    <p class="custom-design-cut-hint">Move the blue frame over the image – what you see in the frame appears on your site. The preview on the right is live.</p>
+                    <div class="custom-design-cut-editor" id="customDesignCutEditor">
+                      <div class="custom-design-cut-image" id="customDesignCutImage"></div>
+                      <div class="custom-design-cut-frame" id="customDesignCutFrame" aria-label="Frame – drag to position"></div>
+                    </div>
+                    <div class="custom-design-zoom-wrap" id="customDesignZoomWrap">
+                      <span class="custom-design-zoom-label">Zoom</span>
+                      <div class="custom-design-zoom-btns">
+                        <button type="button" class="custom-design-zoom-btn" id="customDesignZoomOut" aria-label="Zoom out">−</button>
+                        <span class="custom-design-zoom-value" id="customDesignZoomValue">100%</span>
+                        <button type="button" class="custom-design-zoom-btn" id="customDesignZoomIn" aria-label="Zoom in">+</button>
+                      </div>
+                    </div>
+                    <button type="button" class="ghost custom-design-clear" id="customDesignClear">Remove custom design</button>
+                  </div>
+                  <div class="modal-actions">
+                    <button type="button" class="ghost" id="customDesignModalClose">Close</button>
+                  </div>
+                </div>
+                <div class="modal-design-right">
+                  <p class="modal-design-preview-label">Site preview – live</p>
+                  <div class="modal-design-iframe-wrap">
+                    <iframe id="customDesignPreviewFrame" class="modal-design-iframe" title="Live profile preview"></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <section class="dashboard-panel" id="panelProfile">
+              <h2>Profile</h2>
+              <p class="subtitle">Name, bio and your link.</p>
+              <div class="profile-card profile-card-inline">
+                <div class="profile-avatar" id="dashboardAvatar" role="button" tabindex="0">
+                  <img class="avatar-preview" id="dashboardAvatarPreview" alt="" hidden />
+                  <span class="plus">+</span>
+                </div>
+                <input type="file" accept="image/*" id="dashboardAvatarInput" hidden />
+                <div class="profile-fields">
+                  <label class="field"><span>Link name</span><input type="text" id="dashboardUsername" placeholder="your-username" maxlength="40" /></label>
+                  <label class="field"><span>Display Name</span><input type="text" id="dashboardDisplayName" placeholder="Display name" maxlength="50" /></label>
+                  <label class="field"><span>Bio</span><textarea id="dashboardBio" placeholder="Bio" maxlength="160"></textarea><span class="counter" id="dashboardBioCounter">0/160</span></label>
+                </div>
+              </div>
+              <div class="profile-link-box">
+                <span class="profile-link-label">Your link:</span>
+                <div class="profile-link-row">
+                  <input type="text" id="dashboardLinkUrl" class="profile-link-input" readonly />
+                  <button type="button" class="ghost" id="copyLinkBtn">Copy</button>
+                </div>
+              </div>
+              <button type="button" class="primary" id="saveProfile">Save</button>
+            </section>
+
+            <section class="dashboard-panel" id="panelPlatforms">
+              <h2>Audience</h2>
+              <p class="subtitle">Platforms and social links.</p>
+              <p class="audience-hint">Add links: click the platform logo (Instagram, YouTube, etc.), then enter your profile URL below. Changes appear live in the preview.</p>
+              <div class="platform-grid" id="dashboardPlatforms"></div>
+              <p class="social-urls-label" id="socialUrlsLabel">Added links (use full URL, e.g. https://instagram.com/your-username):</p>
+              <div class="social-urls" id="socialUrls"></div>
+            </section>
+
+            <section class="dashboard-panel" id="panelAnalytics">
+              <h2>Insights</h2>
+              <p class="subtitle">Views and clicks.</p>
+              <div class="analytics-cards">
+                <div class="analytics-card">
+                  <span class="analytics-value" id="statPageViews">0</span>
+                  <span class="analytics-label">Views</span>
+                </div>
+              </div>
+              <div class="analytics-clicks" id="analyticsClicks"></div>
+            </section>
+          </main>
+
+          <!-- Previzualizare dreapta -->
+          <aside class="dashboard-preview">
+            <div class="preview-bar">
+              <input type="text" id="dashboardLinkUrlPreview" class="preview-url-input" readonly />
+              <button type="button" class="preview-copy" id="copyLinkBtnPreview" title="Copy">⎘</button>
+              <a href="#" target="_blank" rel="noopener" class="primary preview-open" id="dashboardProfileLink">Open</a>
+            </div>
+            <div class="preview-frame-wrap">
+              <iframe id="previewFrame" class="preview-frame" title="Profile preview"></iframe>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>

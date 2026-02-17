@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Link in Bio – Taply</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <meta name="description" content="Link in bio page – one link for all your content. Made with Taply, free." />
+    <meta property="og:title" content="Link in Bio – Taply" />
+    <meta property="og:description" content="One link for everything. View my links." />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body id="profilePage">
+    <header class="live-header">
+      <a href="landing.html" class="live-logo-link" aria-label="Open Taply home">
+        <span class="live-logo-mark">T</span>
+        <span class="live-logo-text">Taply</span>
+      </a>
+    </header>
+    <div class="live-page-wrap" id="livePageWrap">
+      <div class="live-profile" id="liveProfile">
+        <div class="live-avatar-wrap">
+          <img class="live-avatar" id="liveAvatar" src="" alt="" />
+          <div class="live-avatar-placeholder" id="liveAvatarPlaceholder"></div>
+        </div>
+        <h1 class="live-name" id="liveName">Name</h1>
+        <p class="live-bio" id="liveBio"></p>
+        <div class="live-social" id="liveSocial"></div>
+        <div class="live-links" id="liveLinks"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var username = params.get("u");
+        var apiBase = window.location.origin;
+
+        function renderFromApi(profile) {
+          if (!profile) return;
+          var wrap = document.getElementById("livePageWrap");
+          if (!wrap) return;
+          var theme = profile.theme || "midnight";
+          document.body.classList.add("live-page", "theme-" + theme);
+          wrap.classList.add("live-page", "theme-" + theme);
+          if (profile.customBackgroundImage) {
+            document.body.classList.add("has-custom-bg");
+            var pos = profile.customBackgroundPosition || "center center";
+            var zoom = typeof profile.customBackgroundZoom === "number" ? profile.customBackgroundZoom : 100;
+            var bgSize = zoom <= 100 ? "cover" : (zoom + "% " + zoom + "%");
+            document.body.style.background = "transparent";
+            document.body.style.backgroundImage = "url(" + profile.customBackgroundImage + ")";
+            document.body.style.backgroundSize = bgSize;
+            document.body.style.backgroundPosition = pos;
+            document.body.style.backgroundRepeat = "no-repeat";
+            document.body.style.backgroundAttachment = "scroll";
+            wrap.style.background = "transparent";
+            wrap.style.backgroundImage = "none";
+          } else {
+            document.body.classList.remove("has-custom-bg");
+            document.body.style.background = "";
+            document.body.style.backgroundImage = "";
+            document.body.style.backgroundSize = "";
+            document.body.style.backgroundPosition = "";
+            document.body.style.backgroundRepeat = "";
+            wrap.style.background = "";
+            wrap.style.backgroundImage = "";
+            wrap.style.backgroundSize = "";
+            wrap.style.backgroundPosition = "";
+            wrap.style.backgroundRepeat = "";
+          }
+
+          var liveAvatar = document.getElementById("liveAvatar");
+          var liveAvatarPlaceholder = document.getElementById("liveAvatarPlaceholder");
+          if (profile.avatar) {
+            liveAvatar.src = profile.avatar;
+            liveAvatar.alt = profile.displayName || "Avatar";
+            liveAvatar.hidden = false;
+            liveAvatarPlaceholder.hidden = true;
+          } else {
+            liveAvatar.hidden = true;
+            liveAvatarPlaceholder.hidden = false;
+          }
+
+          document.getElementById("liveName").textContent = profile.displayName || profile.username || "Name";
+          var bioEl = document.getElementById("liveBio");
+          if (profile.bio) {
+            bioEl.textContent = profile.bio;
+            bioEl.hidden = false;
+          } else {
+            bioEl.hidden = true;
+          }
+
+          var socialLinks = profile.socialLinks || [];
+          if (socialLinks.length === 0 && (profile.platforms || []).length > 0) {
+            socialLinks = (profile.platforms || []).map(function (key) { return { platform: key, url: (profile.socialUrls || {})[key] || "#" }; });
+          }
+          var socialEl = document.getElementById("liveSocial");
+          var simpleIconsCdn = "https://cdn.simpleicons.org";
+          var platformSlugs = { instagram: "instagram", whatsapp: "whatsapp", tiktok: "tiktok", youtube: "youtube", website: "globe", spotify: "spotify", threads: "threads", facebook: "facebook", x: "x", soundcloud: "soundcloud", snapchat: "snapchat", pinterest: "pinterest" };
+          if (socialLinks.length > 0) {
+            var linksHtml = socialLinks.map(function (entry) {
+              var key = entry.platform || "website";
+              var url = ((entry.url || (profile.socialUrls || {})[key]) || "#").replace(/"/g, "&quot;");
+              var label = key.charAt(0).toUpperCase() + key.slice(1);
+              var slug = platformSlugs[key];
+              var logo = slug ? "<img src=\"" + simpleIconsCdn + "/" + slug + "\" alt=\"\" class=\"live-social-logo\" loading=\"lazy\" data-label=\"" + label.replace(/"/g, "&quot;") + "\" onerror=\"this.style.display='none';var s=this.nextElementSibling;if(s)s.style.display='inline'\" /><span class=\"live-social-fallback\" style=\"display:none\">" + label + "</span>" : label;
+              return "<a href=\"" + url + "\" target=\"_blank\" rel=\"noopener\" class=\"live-social-link\" aria-label=\"" + label + "\">" + logo + "</a>";
+            }).join("");
+            socialEl.innerHTML = linksHtml;
+            socialEl.hidden = false;
+          } else {
+            socialEl.hidden = true;
+          }
+
+          var linkIconSlugs = { youtube: "youtube", instagram: "instagram", tiktok: "tiktok", website: "globe", spotify: "spotify", link: "link" };
+          function linkDomain(url) {
+            try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return ""; }
+          }
+          var links = profile.links || [];
+          var linksEl = document.getElementById("liveLinks");
+          links.forEach(function (link) {
+            var a = document.createElement("a");
+            a.href = link.url;
+            a.target = "_blank";
+            a.rel = "noopener";
+            a.className = "live-link" + (link.highlight ? " is-highlight" : "");
+            if (link.type === "image" && link.imageUrl) {
+              var img = document.createElement("img");
+              img.src = link.imageUrl;
+              img.alt = link.title || "";
+              img.className = "live-link-image";
+              a.appendChild(img);
+            } else {
+              a.className = a.className + " live-link-with-logo";
+              var logoWrap = document.createElement("span");
+              logoWrap.className = "live-link-logo";
+              var slug = link.icon && linkIconSlugs[link.icon];
+              if (slug) {
+                var logoImg = document.createElement("img");
+                logoImg.src = simpleIconsCdn + "/" + slug;
+                logoImg.alt = "";
+                logoImg.className = "live-link-logo-img";
+                logoImg.loading = "lazy";
+                logoWrap.appendChild(logoImg);
+              } else {
+                logoWrap.classList.add("live-link-logo-placeholder");
+                logoWrap.textContent = (link.title || "Link").charAt(0);
+              }
+              var textWrap = document.createElement("span");
+              textWrap.className = "live-link-text";
+              var titleSpan = document.createElement("span");
+              titleSpan.className = "live-link-title";
+              titleSpan.textContent = link.title || "Link";
+              var subSpan = document.createElement("span");
+              subSpan.className = "live-link-subtitle";
+              subSpan.textContent = "";
+              textWrap.appendChild(titleSpan);
+              a.appendChild(logoWrap);
+              a.appendChild(textWrap);
+            }
+            a.addEventListener("click", function () {
+              fetch(apiBase + "/api/profile/" + encodeURIComponent(username) + "/click", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ linkId: link.id })
+              }).catch(function () {});
+            });
+            linksEl.appendChild(a);
+          });
+        }
+
+        function showEmpty() {
+          var liveProfile = document.getElementById("liveProfile");
+          if (liveProfile) liveProfile.innerHTML = "<p class='live-empty'>Profile not found or invalid link. <a href='index.html' target='_top'>Taply</a></p>";
+          document.body.classList.add("live-page", "theme-minimal");
+          var wrap = document.getElementById("livePageWrap");
+          if (wrap) wrap.classList.add("live-page", "theme-minimal");
+        }
+
+        if (username) {
+          fetch(apiBase + "/api/profile/" + encodeURIComponent(username) + "?_=" + Date.now())
+            .then(function (r) {
+              if (!r.ok) throw new Error();
+              return r.json();
+            })
+            .then(function (profile) {
+              fetch(apiBase + "/api/profile/" + encodeURIComponent(username) + "/view", { method: "POST" }).catch(function () {});
+              renderFromApi(profile);
+            })
+            .catch(showEmpty);
+        } else {
+          showEmpty();
+        }
+      })();
+    </script>
+  </body>
+</html>

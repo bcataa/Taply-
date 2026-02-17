@@ -1,0 +1,27 @@
+CUM PORNESTI TAPLY (cu conturi și parole)
+==========================================
+
+Pentru site PUBLIC, unde fiecare persoană are linkul ei (ex: site.ro/profile.html?u=numele-tau):
+
+1. Instalează Node.js dacă nu îl ai: https://nodejs.org
+
+2. Pornește serverul – una din variante:
+
+   A) Dublu-clic pe „Taply.command”  ← recomandat pe Mac
+      → Se deschide Terminal, se instalează dependențele (la prima rulare),
+        apoi se deschide browserul. Oprești cu Ctrl+C în Terminal.
+      (Nu folosi start.sh cu dublu-click – se deschide ca text.)
+
+   B) Din Terminal:
+      cd "calea/către/folderul/Taply"
+      chmod +x start.sh
+      ./start.sh
+      (sau: npm install && npm start)
+      → Deschide în browser: http://localhost:8000/landing.html
+
+3. Înregistrare: apasă Înregistrare / Începe gratuit → email + parolă (min. 6 caractere) + nume utilizator.
+   Linkul tău va fi: http://localhost:8000/profile.html?u=NUMELE_TAU
+
+4. Log in: email + parolă. După ce te loghezi, vezi dashboard-ul și linkul tău personal.
+
+5. Ieșire: butonul „Ieșire” din dashboard șterge sesiunea.

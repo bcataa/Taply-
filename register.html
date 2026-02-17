@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign up – Taply</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+  </head>
+  <body class="login-page">
+    <div class="login-bg"></div>
+
+    <header class="login-header">
+      <a href="landing.html" class="login-logo">Taply</a>
+      <a href="landing.html" class="login-back">← Back</a>
+    </header>
+
+    <main class="login-main">
+      <div class="login-card" id="loginCard">
+        <div class="server-warning" id="serverWarning" hidden>
+          <strong>Page opened from file.</strong> Start the server (double-click <strong>Taply.command</strong>), then open: <a href="http://localhost:8001/register.html" id="serverWarningLink">http://localhost:8001/register.html</a>
+        </div>
+        <div class="login-card-badge register-badge">Sign up</div>
+        <h1 class="login-title">Create free account</h1>
+        <p class="login-subtitle">One link for everything. Your link: taply.ro/your-username.</p>
+
+        <div class="auth-social-row" id="registerSocialRow">
+          <button type="button" class="auth-btn-social auth-btn-google" id="registerGoogleBtn">
+            <svg class="auth-btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Continue with Google
+          </button>
+        </div>
+        <div class="auth-divider" id="registerAuthDivider">
+          <span>or sign up with email</span>
+        </div>
+
+        <form class="login-form" id="registerForm">
+          <label class="login-field">
+            <span>Email</span>
+            <input type="email" id="registerEmail" placeholder="nume@gmail.com" required autocomplete="email" />
+            <span class="field-hint" style="color: rgba(255,255,255,0.6); font-size: 12px;">Use a real email (e.g. Gmail). Test addresses are not accepted.</span>
+          </label>
+          <label class="login-field">
+            <span>Password (min. 6 characters)</span>
+            <input type="password" id="registerPassword" placeholder="••••••••" required minlength="6" autocomplete="new-password" />
+          </label>
+          <label class="login-field">
+            <span>Username (your link)</span>
+            <input type="text" id="registerUsername" placeholder="your-username" required autocomplete="username" />
+            <span class="field-hint" style="color: rgba(255,255,255,0.6);">Your link: <span id="registerLinkPrefix">taply.ro</span>/<strong id="usernamePreview">your-username</strong></span>
+          </label>
+          <p class="login-error" id="registerError"></p>
+          <p class="privacy-agree">By creating an account you agree to our <a href="privacy.html">Privacy Policy</a>.</p>
+          <button type="submit" class="login-btn" id="registerBtn">Create account</button>
+        </form>
+
+        <p class="login-footer-text">
+          Already have an account?
+          <a href="login.html">Sign in</a>
+        </p>
+      </div>
+    </main>
+
+    <footer class="login-page-footer">
+      <p>© Taply · <a href="privacy.html">Privacy</a> · 100% free</p>
+    </footer>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var emailParam = params.get("email") || "";
+        var emailInput = document.getElementById("registerEmail");
+        var passwordInput = document.getElementById("registerPassword");
+        var usernameInput = document.getElementById("registerUsername");
+        var usernamePreview = document.getElementById("usernamePreview");
+        var form = document.getElementById("registerForm");
+        var errorEl = document.getElementById("registerError");
+        var btn = document.getElementById("registerBtn");
+
+        if (emailInput && emailParam) emailInput.value = emailParam;
+        var registerPrefixEl = document.getElementById("registerLinkPrefix");
+        if (registerPrefixEl && window.location.origin && window.location.protocol !== "file:") registerPrefixEl.textContent = window.location.host;
+
+        function slug(s) {
+          return (s || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "";
+        }
+        function updatePreview() {
+          if (usernamePreview && usernameInput) usernamePreview.textContent = slug(usernameInput.value) || "your-username";
+        }
+        if (usernameInput) {
+          usernameInput.addEventListener("input", updatePreview);
+          usernameInput.addEventListener("change", updatePreview);
+          updatePreview();
+        }
+
+        function useSupabase() {
+          return window.TaplySupabase && window.TaplySupabase.url && window.TaplySupabase.anonKey && window.supabase;
+        }
+        (function () {
+          var isFile = window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null";
+          if (isFile) {
+            var w = document.getElementById("serverWarning");
+            if (w) { w.hidden = false; }
+          }
+          if (!useSupabase()) {
+            var sr = document.getElementById("registerSocialRow");
+            var div = document.getElementById("registerAuthDivider");
+            if (sr) sr.style.display = "none";
+            if (div) div.style.display = "none";
+          }
+        })();
+        function doSocialSignup(provider) {
+          if (!useSupabase()) return;
+          var redirectTo = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/index.html";
+          var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
+          supabase.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirectTo } }).then(function (r) {
+            if (r.error) {
+              if (errorEl) errorEl.textContent = r.error.message || "Connection error.";
+              return;
+            }
+            if (r.data && r.data.url) window.location.href = r.data.url;
+          });
+        }
+        var regGoogleBtn = document.getElementById("registerGoogleBtn");
+        if (regGoogleBtn) regGoogleBtn.addEventListener("click", function () { doSocialSignup("google"); });
+
+        function registerErrorMsg(msg) {
+          if (!msg) return "Sign-up error.";
+          var m = msg.toLowerCase();
+          if (m.indexOf("invalid") !== -1 && m.indexOf("email") !== -1) return "Use a real email address (e.g. @gmail.com). Test addresses are not accepted.";
+          if (m.indexOf("already registered") !== -1 || m.indexOf("already in use") !== -1) return "This email is already in use. Sign in or reset your password.";
+          if (m.indexOf("password") !== -1 && m.indexOf("short") !== -1) return "Password must be at least 6 characters.";
+          if (m.indexOf("rate limit") !== -1 || m.indexOf("too many") !== -1) return "Too many attempts. Wait 1–2 minutes and try again.";
+          return msg;
+        }
+
+        if (form) {
+          form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var email = (emailInput && emailInput.value) ? emailInput.value.trim() : "";
+            var password = passwordInput ? passwordInput.value : "";
+            var username = slug(usernameInput && usernameInput.value ? usernameInput.value : email.split("@")[0]);
+            if (!email || !password) {
+              if (errorEl) { errorEl.textContent = "Enter email and password."; }
+              return;
+            }
+            if (password.length < 6) {
+              if (errorEl) { errorEl.textContent = "Password must be at least 6 characters."; }
+              return;
+            }
+            if (!username) {
+              if (errorEl) { errorEl.textContent = "Choose a username."; }
+              return;
+            }
+            if (errorEl) errorEl.textContent = "";
+            if (btn) { btn.disabled = true; btn.textContent = "Creating…"; }
+
+            if (useSupabase()) {
+              var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
+              supabase.auth.signUp({ email: email, password: password, options: { data: { username: username } } })
+                .then(function (result) {
+                  if (result.error) {
+                    if (errorEl) errorEl.textContent = registerErrorMsg(result.error.message);
+                    if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                    return;
+                  }
+                  var user = result.data.user;
+                  if (!user) {
+                    if (errorEl) errorEl.textContent = "Error creating account.";
+                    if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                    return;
+                  }
+                  var defaultProfile = {
+                    theme: "midnight",
+                    platforms: [],
+                    socialLinks: [],
+                    displayName: "",
+                    bio: "",
+                    avatar: null,
+                    links: [],
+                    socialUrls: {},
+                    customBackgroundImage: null,
+                    customBackgroundPosition: "center center",
+                    customBackgroundZoom: 100
+                  };
+                  supabase.from("profiles").insert({
+                    id: user.id,
+                    username: username,
+                    profile: defaultProfile,
+                    analytics: { pageViews: 0, linkClicks: {} }
+                  }).then(function (insertResult) {
+                    if (insertResult.error) {
+                      var isUsernameTaken = insertResult.error.code === "23505" && (insertResult.error.message || "").indexOf("username") !== -1;
+                      if (errorEl) errorEl.textContent = isUsernameTaken ? "This username is already taken. Choose another." : (insertResult.error.message || "Error creating profile.");
+                      if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                      return;
+                    }
+                    window.location.replace(window.location.pathname.replace(/register\.html$/, "index.html") || "index.html");
+                  }).catch(function () {
+                    if (errorEl) errorEl.textContent = "Connection error. Try again.";
+                    if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                  });
+                })
+                .catch(function () {
+                  if (errorEl) errorEl.textContent = "Connection error. Check supabase-config.js.";
+                  if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                });
+              return;
+            }
+
+            var apiBase = window.location.origin;
+            fetch(apiBase + "/api/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: email, password: password, username: username })
+            })
+              .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+              .then(function (result) {
+                if (result.ok) {
+                  if (result.data.token) {
+                    try { localStorage.setItem("taply_token", result.data.token); } catch (err) {}
+                  }
+                  window.location.replace(window.location.pathname.replace(/register\.html$/, "index.html") || "index.html");
+                } else {
+                  if (errorEl) errorEl.textContent = result.data.error || "Sign-up error.";
+                  if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                }
+              })
+              .catch(function () {
+                var isLocal = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+                if (errorEl) errorEl.textContent = isLocal ? "Connection error. Start the server (double-click Taply.command or ./start.sh), then open: http://localhost:8001/register.html" : "Connection error. Please check your internet and try again.";
+                if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+              });
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
