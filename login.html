@@ -175,6 +175,7 @@
 
         function doSocialLogin(provider) {
           if (!useSupabase()) return;
+          if (errorEl) errorEl.textContent = "";
           var redirectTo = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/index.html";
           var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
           supabase.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirectTo } }).then(function (r) {
@@ -182,7 +183,13 @@
               if (errorEl) errorEl.textContent = r.error.message || "Connection error.";
               return;
             }
-            if (r.data && r.data.url) window.location.href = r.data.url;
+            if (r.data && r.data.url) {
+              window.location.href = r.data.url;
+            } else {
+              if (errorEl) errorEl.textContent = "Google login did not open. Add this site URL in Supabase: Authentication → URL Configuration → Redirect URLs (e.g. " + redirectTo + ").";
+            }
+          }).catch(function (err) {
+            if (errorEl) errorEl.textContent = (err && err.message) ? err.message : "Connection error. Check Supabase URL Configuration (Redirect URLs).";
           });
         }
         var googleBtn = document.getElementById("loginGoogleBtn");

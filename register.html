@@ -135,6 +135,7 @@
         });
         function doSocialSignup(provider) {
           if (!useSupabase()) return;
+          if (errorEl) errorEl.textContent = "";
           var redirectTo = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/index.html";
           var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
           supabase.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirectTo } }).then(function (r) {
@@ -142,7 +143,13 @@
               if (errorEl) errorEl.textContent = r.error.message || "Connection error.";
               return;
             }
-            if (r.data && r.data.url) window.location.href = r.data.url;
+            if (r.data && r.data.url) {
+              window.location.href = r.data.url;
+            } else {
+              if (errorEl) errorEl.textContent = "Google signup did not open. Add this site URL in Supabase: Authentication → URL Configuration → Redirect URLs.";
+            }
+          }).catch(function (err) {
+            if (errorEl) errorEl.textContent = (err && err.message) ? err.message : "Connection error. Check Supabase URL Configuration (Redirect URLs).";
           });
         }
         var regGoogleBtn = document.getElementById("registerGoogleBtn");
@@ -220,8 +227,8 @@
                     profile: defaultProfile
                   }).eq("id", user.id).then(function (updateResult) {
                     if (updateResult.error) {
-                      var isUsernameTaken = updateResult.error.code === "23505" && (updateResult.error.message || "").indexOf("username") !== -1;
-                      if (errorEl) errorEl.textContent = isUsernameTaken ? "This username is already taken. Choose another." : (updateResult.error.message || "Error updating profile.");
+                      var isUsernameTaken = updateResult.error.code === "23505" || (updateResult.error.message || "").toLowerCase().indexOf("unique") !== -1 || (updateResult.error.message || "").toLowerCase().indexOf("username") !== -1;
+                      if (errorEl) errorEl.textContent = isUsernameTaken ? "This username is already taken. Choose another." : (updateResult.error.message || "Error updating profile. Try another username.");
                       if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
                       return;
                     }

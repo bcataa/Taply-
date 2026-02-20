@@ -91,6 +91,27 @@ Dacă nu există `.env` sau aceste variabile, serverul folosește `data/users.js
 - **Fără confirmare email**: În **Authentication → Providers → Email** poți dezactiva „Confirm email” ca utilizatorii să intre direct după înregistrare.
 - **Cu confirmare email**: Supabase trimite un link de confirmare; utilizatorul trebuie să dea click înainte de a se putea loga.
 
+### Site URL și Redirect URLs – obligatoriu pentru site-ul live
+
+Dacă folosești site-ul pe **Railway** sau alt domeniu (nu localhost), **trebuie** să setezi în Supabase URL-ul live. Altfel:
+- **Login cu Google** după click pe „Continue with Google” te duce la localhost și apare „Conexiune refuzată”.
+- **Reset parolă** – linkul din email duce la localhost și nu se deschide.
+
+**Pași (o singură dată):**
+
+1. În **Supabase Dashboard** → **Authentication** → **URL Configuration**.
+2. **Site URL**: pune **exact** URL-ul site-ului tău live, **fără** slash la final.
+   - Exemple: `https://taply-production.up.railway.app` sau `https://taply.ro`
+3. **Redirect URLs**: adaugă URL-ul live cu `/**` (permite toate căile de pe domeniu):
+   - `https://taply-production.up.railway.app/**`  
+   - sau `https://domeniul-tau.ro/**`  
+   Dacă ai și domeniu custom pe Railway, adaugă și acel domeniu, ex. `https://taply.ro/**`.
+4. Apasă **Save**.
+
+După salvare:
+- **Google**: deschide site-ul **live** (nu localhost), apasă „Continue with Google” – după autentificare te întoarce pe site-ul live.
+- **Reset parolă**: deschide `https://taply-production.up.railway.app/forgot-password.html` (sau domeniul tău), trimite linkul; emailul va conține un link către site-ul live.
+
 ### Cum nu mai ești limitat la email (Resend, gratuit)
 
 Supabase are implicit **2 emailuri pe oră**. Cu **Custom SMTP** (ex. Resend) poți mări limita. Resend are plan gratuit (100 emailuri/zi).
