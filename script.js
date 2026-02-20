@@ -698,6 +698,18 @@
       dropdownProfileLink.href = profileFullUrl;
       dropdownProfileLink.textContent = (window.location.hostname || "taply.ro") + "/" + (username || "my-profile");
     }
+    window.updateDashboardLinkDisplay = function () {
+      var p = getProfile();
+      var u = (currentUser && currentUser.username) || p.username || "";
+      var fullUrl = window.location.origin + (window.location.pathname || "").replace(/[^/]*$/, "") + "profile.html?u=" + encodeURIComponent(u || "my-profile");
+      if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
+      if (previewFrame && u) previewFrame.src = fullUrl;
+      if (dashboardLinkUrlPreview) dashboardLinkUrlPreview.value = fullUrl;
+      if (dashboardLinkUrl) dashboardLinkUrl.value = fullUrl;
+      if (sidebarUsername) sidebarUsername.textContent = u || "—";
+      if (dropdownUsername) dropdownUsername.textContent = u || "—";
+      if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = (window.location.hostname || "taply.ro") + "/" + (u || "my-profile"); }
+    };
     if (dropdownAvatarImg && profile.avatar) {
       dropdownAvatarImg.src = profile.avatar;
       dropdownAvatarImg.hidden = false;
@@ -1083,12 +1095,9 @@
       if (promise && promise.then) {
         saveProfileBtn.disabled = true;
         promise.then(function () {
+          if (currentUser) currentUser.username = p.username;
           updateProfileLinkUrl();
-          var un = (currentUser && currentUser.username) || p.username || "";
-          if (dashboardLinkUrlPreview) {
-            dashboardLinkUrlPreview.value = window.location.origin + (window.location.pathname || "").replace(/[^/]*$/, "") + "profile.html?u=" + encodeURIComponent(un);
-          }
-          if (profileLinkEl) profileLinkEl.href = un ? (window.location.origin + (window.location.pathname || "").replace(/[^/]*$/, "") + "profile.html?u=" + encodeURIComponent(un)) : "#";
+          if (typeof window.updateDashboardLinkDisplay === "function") window.updateDashboardLinkDisplay();
           refreshPreview();
           alert("Profile saved.");
         }).catch(function () {
@@ -1115,7 +1124,9 @@
         }
         if (dashboardBio) p.bio = dashboardBio.value.trim();
         saveProfile(p);
+        if (currentUser) currentUser.username = p.username;
         updateProfileLinkUrl();
+        if (typeof window.updateDashboardLinkDisplay === "function") window.updateDashboardLinkDisplay();
         liveRefreshPreview();
       }, 600);
     }
@@ -1374,11 +1385,7 @@
 
   function init() {
     if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
-      var app = document.getElementById("app");
-      if (app) {
-        app.style.padding = "2rem";
-        app.innerHTML = "<div style='text-align:center;max-width:360px;margin:0 auto'><p style='margin-bottom:1rem'>Open the app via the server, not from file.</p><p style='margin-bottom:1rem'>In Terminal, in the Taply folder:</p><p><code>./start.sh</code></p><p style='margin-top:1rem'>Then open in browser: <a href='http://localhost:8001/index.html'>http://localhost:8001/index.html</a></p><p style='font-size:13px;color:#666;margin-top:1rem'>If the port is different (e.g. 8002), use that port.</p></div>";
-      }
+      window.location.href = "login.html";
       return;
     }
     var supabase = getSupabase();
@@ -1440,7 +1447,7 @@
             analytics: row.analytics || { pageViews: 0, linkClicks: {} },
           };
           var profile = currentUser.profile;
-          var needsOnboarding = !profile.displayName && (!profile.links || profile.links.length === 0) && !profile.theme;
+          var needsOnboarding = !profile.displayName && (!profile.links || profile.links.length === 0);
           if (needsOnboarding) {
             showView("onboarding");
             initOnboarding();
@@ -1485,7 +1492,7 @@
           if (!data) return;
           currentUser = data;
           const profile = data.profile || {};
-          const needsOnboarding = !profile.displayName && (!profile.links || profile.links.length === 0) && !profile.theme;
+          const needsOnboarding = !profile.displayName && (!profile.links || profile.links.length === 0);
           if (needsOnboarding) {
             showView("onboarding");
             initOnboarding();

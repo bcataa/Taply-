@@ -70,6 +70,8 @@ create trigger profiles_updated_at
   for each row execute function public.set_updated_at();
 ```
 
+**Dacă la înregistrare apare eroarea „new row violates row-level security policy”:** rulează în SQL Editor **tot conținutul** din fișierul `supabase-profiles.sql` din proiect (include și trigger-ul care creează automat profilul la signup). Apoi reîncearcă înregistrarea.
+
 ## 4. Pagina de profil publică (profile.html) și analytics
 
 Pentru ca **pagina de profil** (link-ul tău taply.ro/username sau profile.html?u=username) să se încarce cu setările din Supabase, serverul trebuie să aibă acces la Supabase:

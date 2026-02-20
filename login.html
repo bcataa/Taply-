@@ -25,9 +25,6 @@
 
     <main class="login-main">
       <div class="login-card" id="loginCard">
-        <div class="server-warning" id="serverWarning" hidden>
-          <strong>Page opened from file.</strong> Start the server (double-click <strong>Taply.command</strong>), then open: <a href="http://localhost:8001/login.html" id="serverWarningLink">http://localhost:8001/login.html</a>
-        </div>
         <div class="login-card-badge">Log in</div>
         <h1 class="login-title">Welcome back</h1>
         <p class="login-subtitle">Sign in to manage your link in bio.</p>
@@ -93,11 +90,6 @@
           return window.TaplySupabase && window.TaplySupabase.url && window.TaplySupabase.anonKey && window.supabase;
         }
         (function () {
-          var isFile = window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null";
-          if (isFile) {
-            var w = document.getElementById("serverWarning");
-            if (w) { w.hidden = false; }
-          }
           if (!useSupabase()) {
             var sr = document.getElementById("loginSocialRow");
             var div = document.getElementById("loginAuthDivider");

@@ -25,9 +25,12 @@
 
     <main class="login-main">
       <div class="login-card" id="loginCard">
-        <div class="server-warning" id="serverWarning" hidden>
-          <strong>Page opened from file.</strong> Start the server (double-click <strong>Taply.command</strong>), then open: <a href="http://localhost:8001/register.html" id="serverWarningLink">http://localhost:8001/register.html</a>
+        <div class="already-logged-in-msg" id="alreadyLoggedInMsg" hidden>
+          <p class="login-subtitle">You're already logged in. Log out first to create a new account.</p>
+          <p style="margin: 16px 0 8px;"><a href="index.html" class="login-btn" style="display:inline-block; text-align:center;">Go to dashboard</a></p>
+          <button type="button" class="login-btn" id="registerLogoutBtn" style="background: transparent; border: 1px solid rgba(255,255,255,0.5);">Log out</button>
         </div>
+        <div id="registerFormWrap">
         <div class="login-card-badge register-badge">Sign up</div>
         <h1 class="login-title">Create free account</h1>
         <p class="login-subtitle">One link for everything. Your link: taply.ro/your-username.</p>
@@ -66,6 +69,7 @@
           Already have an account?
           <a href="login.html">Sign in</a>
         </p>
+        </div>
       </div>
     </main>
 
@@ -105,18 +109,30 @@
           return window.TaplySupabase && window.TaplySupabase.url && window.TaplySupabase.anonKey && window.supabase;
         }
         (function () {
-          var isFile = window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null";
-          if (isFile) {
-            var w = document.getElementById("serverWarning");
-            if (w) { w.hidden = false; }
-          }
           if (!useSupabase()) {
             var sr = document.getElementById("registerSocialRow");
             var div = document.getElementById("registerAuthDivider");
             if (sr) sr.style.display = "none";
             if (div) div.style.display = "none";
+            return;
           }
+          var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
+          supabase.auth.getSession().then(function (r) {
+            var session = r.data && r.data.session;
+            if (session && session.user) {
+              var msgEl = document.getElementById("alreadyLoggedInMsg");
+              var formWrap = document.getElementById("registerFormWrap");
+              if (msgEl) msgEl.hidden = false;
+              if (formWrap) formWrap.hidden = true;
+            }
+          });
         })();
+        var logoutBtn = document.getElementById("registerLogoutBtn");
+        if (logoutBtn) logoutBtn.addEventListener("click", function () {
+          if (!useSupabase()) return;
+          var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
+          supabase.auth.signOut().then(function () { window.location.reload(); });
+        });
         function doSocialSignup(provider) {
           if (!useSupabase()) return;
           var redirectTo = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/index.html";
@@ -168,6 +184,14 @@
               supabase.auth.signUp({ email: email, password: password, options: { data: { username: username } } })
                 .then(function (result) {
                   if (result.error) {
+                    var msg = (result.error.message || "").toLowerCase();
+                    var code = (result.error.code || "").toLowerCase();
+                    var isAlreadyRegistered = msg.indexOf("already registered") !== -1 || msg.indexOf("already in use") !== -1 || msg.indexOf("user already exists") !== -1 || code === "user_already_exists" || result.error.statusCode === 422;
+                    if (isAlreadyRegistered) {
+                      var loginUrl = "login.html?email=" + encodeURIComponent(email);
+                      window.location.replace(window.location.pathname.replace(/register\.html$/, "") + loginUrl);
+                      return;
+                    }
                     if (errorEl) errorEl.textContent = registerErrorMsg(result.error.message);
                     if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
                     return;
@@ -191,15 +215,13 @@
                     customBackgroundPosition: "center center",
                     customBackgroundZoom: 100
                   };
-                  supabase.from("profiles").insert({
-                    id: user.id,
+                  supabase.from("profiles").update({
                     username: username,
-                    profile: defaultProfile,
-                    analytics: { pageViews: 0, linkClicks: {} }
-                  }).then(function (insertResult) {
-                    if (insertResult.error) {
-                      var isUsernameTaken = insertResult.error.code === "23505" && (insertResult.error.message || "").indexOf("username") !== -1;
-                      if (errorEl) errorEl.textContent = isUsernameTaken ? "This username is already taken. Choose another." : (insertResult.error.message || "Error creating profile.");
+                    profile: defaultProfile
+                  }).eq("id", user.id).then(function (updateResult) {
+                    if (updateResult.error) {
+                      var isUsernameTaken = updateResult.error.code === "23505" && (updateResult.error.message || "").indexOf("username") !== -1;
+                      if (errorEl) errorEl.textContent = isUsernameTaken ? "This username is already taken. Choose another." : (updateResult.error.message || "Error updating profile.");
                       if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
                       return;
                     }
@@ -230,7 +252,14 @@
                   }
                   window.location.replace(window.location.pathname.replace(/register\.html$/, "index.html") || "index.html");
                 } else {
-                  if (errorEl) errorEl.textContent = result.data.error || "Sign-up error.";
+                  var errMsg = (result.data && result.data.error) ? result.data.error : "Sign-up error.";
+                  var emailInUse = errMsg.toLowerCase().indexOf("already") !== -1 || errMsg.toLowerCase().indexOf("in use") !== -1;
+                  if (emailInUse && email) {
+                    var loginUrl = "login.html?email=" + encodeURIComponent(email);
+                    window.location.replace(window.location.pathname.replace(/register\.html$/, "") + loginUrl);
+                    return;
+                  }
+                  if (errorEl) errorEl.textContent = errMsg;
                   if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
                 }
               })

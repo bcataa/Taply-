@@ -2460,6 +2460,12 @@ body.live-page.theme-minimal .live-link.is-highlight,
   margin: 0 0 10px;
 }
 
+.already-logged-in-msg {
+  text-align: center;
+  padding: 8px 0;
+}
+.already-logged-in-msg .login-subtitle { margin-bottom: 8px; }
+
 .login-subtitle {
   font-size: 15px;
   color: rgba(255, 255, 255, 0.65);
@@ -3137,6 +3143,17 @@ body.live-page.theme-minimal .live-link.is-highlight,
 .landing-section-header h2 {
   font-size: clamp(22px, 3vw, 28px);
   margin-bottom: 8px;
+}
+
+.landing-section-about .landing-section-header h2 {
+  color: #ffffff !important;
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+.landing-section-about .landing-section-header p {
+  color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .landing-section-header p {
