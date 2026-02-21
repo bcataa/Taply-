@@ -665,6 +665,7 @@
     const username = (currentUser && currentUser.username) || profile.username || "";
     var slugNorm = (username || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
     var profileFullUrl = window.location.origin + "/" + slugNorm;
+    var profileDisplayUrl = (window.location.hostname || "taply.ro") + "/" + slugNorm;
     const profileLinkEl = document.getElementById("dashboardProfileLink");
     if (profileLinkEl) {
       profileLinkEl.href = username ? profileFullUrl : "#";
@@ -673,13 +674,18 @@
       previewFrame.src = profileFullUrl;
     }
     if (dashboardLinkUrlPreview) {
-      dashboardLinkUrlPreview.value = profileFullUrl;
+      dashboardLinkUrlPreview.value = profileDisplayUrl;
+      dashboardLinkUrlPreview.dataset.fullUrl = profileFullUrl;
+    }
+    if (dashboardLinkUrl) {
+      dashboardLinkUrl.value = profileDisplayUrl;
+      dashboardLinkUrl.dataset.fullUrl = profileFullUrl;
     }
     if (copyLinkBtnPreview && dashboardLinkUrlPreview) {
       copyLinkBtnPreview.addEventListener("click", () => {
-        dashboardLinkUrlPreview.select();
+        var toCopy = dashboardLinkUrlPreview.dataset.fullUrl || dashboardLinkUrlPreview.value;
         try {
-          navigator.clipboard.writeText(dashboardLinkUrlPreview.value);
+          navigator.clipboard.writeText(toCopy);
           copyLinkBtnPreview.textContent = "✓";
           setTimeout(() => { copyLinkBtnPreview.textContent = "⎘"; }, 1500);
         } catch (e) {}
@@ -708,17 +714,22 @@
       var u = (currentUser && currentUser.username) || p.username || "";
       var s = (u || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
       var fullUrl = window.location.origin + "/" + s;
+      var displayUrl = (window.location.hostname || "taply.ro") + "/" + s;
       if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
       if (previewFrame && u) previewFrame.src = fullUrl;
-      if (dashboardLinkUrlPreview) dashboardLinkUrlPreview.value = fullUrl;
-      if (dashboardLinkUrl) dashboardLinkUrl.value = fullUrl;
+      if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
+      if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
         profileSubdomainRow.hidden = !u;
-        if (u) dashboardLinkSubdomainUrl.value = "https://" + s + "." + window.SUBDOMAIN_DOMAIN;
+        if (u) {
+          var subFull = "https://" + s + "." + window.SUBDOMAIN_DOMAIN;
+          dashboardLinkSubdomainUrl.value = s + "." + window.SUBDOMAIN_DOMAIN;
+          dashboardLinkSubdomainUrl.dataset.fullUrl = subFull;
+        }
       }
       if (sidebarUsername) sidebarUsername.textContent = u || "—";
       if (dropdownUsername) dropdownUsername.textContent = u || "—";
-      if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = (window.location.hostname || "taply.ro") + "/" + s; }
+      if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = displayUrl; }
     };
     if (dropdownAvatarImg && profile.avatar) {
       dropdownAvatarImg.src = profile.avatar;
@@ -1070,11 +1081,15 @@
       const p = getProfile();
       const username = (dashboardUsername && dashboardUsername.value.trim()) || (currentUser && currentUser.username) || (p && p.username) || "my-profile";
       const slug = username.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-      const link = window.location.origin + "/" + slug;
-      if (dashboardLinkUrl) dashboardLinkUrl.value = link;
+      const fullUrl = window.location.origin + "/" + slug;
+      const displayUrl = (window.location.hostname || "taply.ro") + "/" + slug;
+      if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
         profileSubdomainRow.hidden = !slug || slug === "my-profile";
-        if (slug && slug !== "my-profile") dashboardLinkSubdomainUrl.value = "https://" + slug + "." + window.SUBDOMAIN_DOMAIN;
+        if (slug && slug !== "my-profile") {
+          dashboardLinkSubdomainUrl.value = slug + "." + window.SUBDOMAIN_DOMAIN;
+          dashboardLinkSubdomainUrl.dataset.fullUrl = "https://" + slug + "." + window.SUBDOMAIN_DOMAIN;
+        }
       }
     }
 
@@ -1085,27 +1100,27 @@
 
     if (copyLinkBtn) {
       copyLinkBtn.addEventListener("click", () => {
-        if (!dashboardLinkUrl || !dashboardLinkUrl.value) return;
-        dashboardLinkUrl.select();
+        var toCopy = dashboardLinkUrl && (dashboardLinkUrl.dataset.fullUrl || dashboardLinkUrl.value);
+        if (!toCopy) return;
         try {
-          navigator.clipboard.writeText(dashboardLinkUrl.value);
+          navigator.clipboard.writeText(toCopy);
           copyLinkBtn.textContent = "Copied!";
           setTimeout(() => { copyLinkBtn.textContent = "Copy"; }, 2000);
         } catch (e) {
-          alert("Link: " + dashboardLinkUrl.value);
+          alert("Link: " + toCopy);
         }
       });
     }
     if (copySubdomainLinkBtn && dashboardLinkSubdomainUrl) {
       copySubdomainLinkBtn.addEventListener("click", () => {
-        if (!dashboardLinkSubdomainUrl.value) return;
-        dashboardLinkSubdomainUrl.select();
+        var toCopy = dashboardLinkSubdomainUrl.dataset.fullUrl || dashboardLinkSubdomainUrl.value;
+        if (!toCopy) return;
         try {
-          navigator.clipboard.writeText(dashboardLinkSubdomainUrl.value);
+          navigator.clipboard.writeText(toCopy);
           copySubdomainLinkBtn.textContent = "Copied!";
           setTimeout(() => { copySubdomainLinkBtn.textContent = "Copy"; }, 2000);
         } catch (e) {
-          alert("Link: " + dashboardLinkSubdomainUrl.value);
+          alert("Link: " + toCopy);
         }
       });
     }
