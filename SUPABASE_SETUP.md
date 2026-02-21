@@ -199,7 +199,7 @@ Pentru butonul **„Continuă cu Google”** ai nevoie de **Client ID** și **Cl
 
 4. **Redirect URLs în Supabase**  
    Mergi la **Authentication → URL Configuration** → **Redirect URLs** și adaugă:  
-   - `http://localhost:8000/index.html`  
+   - `http://localhost:8000/dashboard`  
    - `http://localhost:8000/reset-password.html` (pentru „Ai uitat parola?”)  
    - (La deploy: și adresa ta de producție, ex. `https://domeniul-tau.com/index.html` și `https://domeniul-tau.com/reset-password.html`.)
 

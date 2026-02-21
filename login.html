@@ -19,8 +19,8 @@
     <div class="login-bg"></div>
 
     <header class="login-header">
-      <a href="landing.html" class="login-logo">Taply</a>
-      <a href="landing.html" class="login-back">← Back</a>
+      <a href="/landing" class="login-logo">Taply</a>
+      <a href="/landing" class="login-back">← Back</a>
     </header>
 
     <main class="login-main">
@@ -59,7 +59,7 @@
 
         <p class="login-footer-text">
           Don’t have an account?
-          <a href="register.html">Sign up free</a>
+          <a href="/register">Sign up free</a>
         </p>
       </div>
     </main>
@@ -137,7 +137,7 @@
                     if (successEl) successEl.hidden = true;
                     return;
                   }
-                  window.location.replace(window.location.pathname.replace(/login\.html$/, "index.html") || "index.html");
+                  window.location.replace(window.location.origin + "/dashboard");
                 })
                 .catch(function () {
                   if (errorEl) errorEl.textContent = "Connection error. Check supabase-config.js (URL and anon key).";
@@ -159,7 +159,7 @@
                   if (result.data.token) {
                     try { localStorage.setItem("taply_token", result.data.token); } catch (err) {}
                   }
-                  window.location.replace(window.location.pathname.replace(/login\.html$/, "index.html") || "index.html");
+                  window.location.replace(window.location.origin + "/dashboard");
                 } else {
                   if (errorEl) errorEl.textContent = result.data.error || "Invalid email or password.";
                   if (btn) { btn.disabled = false; btn.textContent = "Sign in"; }
@@ -167,7 +167,7 @@
               })
               .catch(function () {
                 var isLocal = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-                if (errorEl) errorEl.textContent = isLocal ? "Connection error. Start the server (double-click Taply.command or ./start.sh), then open: http://localhost:8001/login.html" : "Connection error. Please check your internet and try again.";
+                if (errorEl) errorEl.textContent = isLocal ? "Connection error. Start the server (double-click Taply.command or ./start.sh), then open: http://localhost:8001/login" : "Connection error. Please check your internet and try again.";
                 if (btn) { btn.disabled = false; btn.textContent = "Sign in"; }
               });
           });
@@ -176,7 +176,7 @@
         function doSocialLogin(provider) {
           if (!useSupabase()) return;
           if (errorEl) errorEl.textContent = "";
-          var redirectTo = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/index.html";
+          var redirectTo = window.location.origin + "/dashboard";
           var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
           supabase.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirectTo } }).then(function (r) {
             if (r.error) {

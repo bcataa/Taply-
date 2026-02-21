@@ -1,0 +1,1 @@
+window.SUBDOMAIN_DOMAIN = "";

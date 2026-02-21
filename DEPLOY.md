@@ -80,7 +80,7 @@ Railway e foarte ușor: conectezi un repo Git, pui variabilele de mediu și în 
 7. **Supabase**  
    În Supabase → **Authentication** → **URL Configuration**:  
    - **Site URL**: `https://domeniul-tau.ro` (sau URL-ul generat de Railway)  
-   - **Redirect URLs**: adaugă `https://domeniul-tau.ro/index.html`, `https://domeniul-tau.ro/register.html`, `https://domeniul-tau.ro/login.html`
+   - **Redirect URLs**: adaugă `https://domeniul-tau.ro/dashboard`, `https://domeniul-tau.ro/register`, `https://domeniul-tau.ro/login`
 
 Gata. Deschizi `https://domeniul-tau.ro/landing.html` și testezi înregistrarea.
 
@@ -114,7 +114,7 @@ Gata. Deschizi `https://domeniul-tau.ro/landing.html` și testezi înregistrarea
 
 - În **Supabase Dashboard** → **Authentication** → **URL Configuration**:
   - **Site URL**: `https://domeniul-tau.ro`
-  - **Redirect URLs**: adaugă `https://domeniul-tau.ro/index.html`, `https://domeniul-tau.ro/register.html`, etc.
+  - **Redirect URLs**: adaugă `https://domeniul-tau.ro/dashboard`, `https://domeniul-tau.ro/register`, etc.
 - În **supabase-config.js** (sau într-un build pe server) URL-ul și `anonKey` trebuie să fie cele ale proiectului tău; dacă ai un singur proiect, de obicei sunt deja corecte.
 
 ---
@@ -123,12 +123,27 @@ Gata. Deschizi `https://domeniul-tau.ro/landing.html` și testezi înregistrarea
 
 - Deschide `https://domeniul-tau.ro/landing.html` – trebuie să se încarce fără mesaje de tip „Start the server” sau „opened from file”.
 - Încearcă **Sign up** și **Log in** (email sau Google dacă e configurat).
-- Deschide un profil public: `https://domeniul-tau.ro/profile.html?u=username`.
+- Deschide un profil public: `https://domeniul-tau.ro/username` (link curat, fără `.html?u=`).
 - Verifică că link-ul din dashboard („Copy link”) folosește domeniul real – aplicația îl ia din `window.location.origin`.
 
 ---
 
-## 7. Dacă folosești alt domeniu decât taply.ro
+## 7. Subdomenii (ex: cata2006.taply.app)
+
+Poți oferi fiecărui user un link de forma **username.domeniu.ro** (ex. `cata2006.taply.app`).
+
+1. **DNS**: la provider-ul tău de domeniu adaugă o înregistrare **wildcard**:
+   - Tip: **A** sau **CNAME**
+   - Nume: `*` (sau `*.taply`, în funcție de provider)
+   - Valoare: adresa serverului (ex. IP-ul Railway sau `taply-production.up.railway.app` pentru CNAME)
+2. **Server**: în `.env` setează `SUBDOMAIN_DOMAIN=taply.app` (doar domeniul, fără `https://` sau `www`).
+3. La pornire, serverul generează `subdomain-config.js`; dashboard-ul afișează și „Or subdomain: https://username.taply.app” cu buton Copy.
+
+Subdomenii rezervate (nu sunt tratate ca username): `www`, `app`, `api`, `mail`, `admin`, `dashboard`, `staging`.
+
+---
+
+## 8. Dacă folosești alt domeniu decât taply.ro
 
 - **Register / text „Your link”**: domeniul se completează automat din URL (host).  
 - **Username step (index)**: prefixul (ex. `https://domeniul-tau.ro/`) se ia din `window.location.origin`.  
@@ -144,6 +159,7 @@ Gata. Deschizi `https://domeniul-tau.ro/landing.html` și testezi înregistrarea
 4. Start: `npm start` sau `node server.js`.  
 5. Leagă domeniul și SSL.  
 6. Configurează Supabase redirect URLs pentru noul domeniu.  
-7. Testează înregistrare, login și profil public.
+7. Testează înregistrare, login și profil public.  
+8. Opțional: pentru linkuri subdomeniu, configurează DNS wildcard și `SUBDOMAIN_DOMAIN` (vezi secțiunea 7).
 
 Gata – Taply e gata de publicare.

@@ -50,29 +50,7 @@ create trigger profiles_updated_at
   before update on public.profiles
   for each row execute function public.set_updated_at();
 
--- Trigger: creează automat un rând în profiles când se înregistrează un user (evită eroarea RLS la primul insert)
--- Username e făcut unic cu un sufix din id ca să nu dea eroare "duplicate key" când doi useri au același prefix din email
-create or replace function public.handle_new_user()
-returns trigger as $$
-declare
-  base_username text;
-  unique_username text;
-begin
-  base_username := lower(split_part(coalesce(new.email, ''), '@', 1));
-  if base_username = '' then base_username := 'user'; end if;
-  base_username := regexp_replace(base_username, '[^a-z0-9-_]', '-', 'g');
-  base_username := regexp_replace(base_username, '-+', '-', 'g');
-  if base_username = '' then base_username := 'user'; end if;
-  unique_username := base_username || '_' || substr(replace(new.id::text, '-', ''), 1, 8);
-  insert into public.profiles (id, username, profile, analytics)
-  values (new.id, unique_username, '{}', '{"pageViews":0,"linkClicks":{}}')
-  on conflict (id) do nothing;
-  return new;
-end;
-$$ language plpgsql security definer;
-
--- Trigger pe auth.users (rulează în schema auth)
+-- NU mai folosim trigger pe auth.users – cauza erorii "database error saving new account".
+-- Profilul se creează din aplicație (register.html face upsert după signUp).
+-- Ștergem trigger-ul dacă există, ca signUp să nu mai dea eroare.
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();

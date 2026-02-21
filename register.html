@@ -19,15 +19,15 @@
     <div class="login-bg"></div>
 
     <header class="login-header">
-      <a href="landing.html" class="login-logo">Taply</a>
-      <a href="landing.html" class="login-back">← Back</a>
+      <a href="/landing" class="login-logo">Taply</a>
+      <a href="/landing" class="login-back">← Back</a>
     </header>
 
     <main class="login-main">
       <div class="login-card" id="loginCard">
         <div class="already-logged-in-msg" id="alreadyLoggedInMsg" hidden>
           <p class="login-subtitle">You're already logged in. Log out first to create a new account.</p>
-          <p style="margin: 16px 0 8px;"><a href="index.html" class="login-btn" style="display:inline-block; text-align:center;">Go to dashboard</a></p>
+          <p style="margin: 16px 0 8px;"><a href="/dashboard" class="login-btn" style="display:inline-block; text-align:center;">Go to dashboard</a></p>
           <button type="button" class="login-btn" id="registerLogoutBtn" style="background: transparent; border: 1px solid rgba(255,255,255,0.5);">Log out</button>
         </div>
         <div id="registerFormWrap">
@@ -67,7 +67,7 @@
 
         <p class="login-footer-text">
           Already have an account?
-          <a href="login.html">Sign in</a>
+          <a href="/login">Sign in</a>
         </p>
         </div>
       </div>
@@ -136,7 +136,7 @@
         function doSocialSignup(provider) {
           if (!useSupabase()) return;
           if (errorEl) errorEl.textContent = "";
-          var redirectTo = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/index.html";
+          var redirectTo = window.location.origin + "/dashboard";
           var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
           supabase.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirectTo } }).then(function (r) {
             if (r.error) {
@@ -188,18 +188,20 @@
 
             if (useSupabase()) {
               var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
-              supabase.auth.signUp({ email: email, password: password, options: { data: { username: username } } })
+              var confirmUrl = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/confirm-email.html";
+              supabase.auth.signUp({ email: email, password: password, options: { data: { username: username }, emailRedirectTo: confirmUrl } })
                 .then(function (result) {
                   if (result.error) {
                     var msg = (result.error.message || "").toLowerCase();
                     var code = (result.error.code || "").toLowerCase();
                     var isAlreadyRegistered = msg.indexOf("already registered") !== -1 || msg.indexOf("already in use") !== -1 || msg.indexOf("user already exists") !== -1 || code === "user_already_exists" || result.error.statusCode === 422;
                     if (isAlreadyRegistered) {
-                      var loginUrl = "login.html?email=" + encodeURIComponent(email);
+                      var loginUrl = "/login?email=" + encodeURIComponent(email);
                       window.location.replace(window.location.pathname.replace(/register\.html$/, "") + loginUrl);
                       return;
                     }
-                    if (errorEl) errorEl.textContent = registerErrorMsg(result.error.message);
+                    var isDbError = msg.indexOf("database") !== -1 || msg.indexOf("saving new") !== -1 || msg.indexOf("trigger") !== -1;
+                    if (errorEl) errorEl.textContent = isDbError ? "Signup failed (database). In Supabase open SQL Editor, run the full supabase-profiles.sql from the project, then try again." : registerErrorMsg(result.error.message);
                     if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
                     return;
                   }
@@ -222,21 +224,24 @@
                     customBackgroundPosition: "center center",
                     customBackgroundZoom: 100
                   };
-                  supabase.from("profiles").update({
-                    username: username,
-                    profile: defaultProfile
-                  }).eq("id", user.id).then(function (updateResult) {
-                    if (updateResult.error) {
-                      var isUsernameTaken = updateResult.error.code === "23505" || (updateResult.error.message || "").toLowerCase().indexOf("unique") !== -1 || (updateResult.error.message || "").toLowerCase().indexOf("username") !== -1;
-                      if (errorEl) errorEl.textContent = isUsernameTaken ? "This username is already taken. Choose another." : (updateResult.error.message || "Error updating profile. Try another username.");
-                      if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                  var profileRow = { id: user.id, username: username, profile: defaultProfile, analytics: { pageViews: 0, linkClicks: {} } };
+                  function goToApp() { window.location.replace(window.location.origin + "/dashboard"); }
+                  function showErr(msg) { if (errorEl) errorEl.textContent = msg; if (btn) { btn.disabled = false; btn.textContent = "Create account"; } }
+                  supabase.from("profiles").upsert(profileRow, { onConflict: "id" }).then(function (upsertResult) {
+                    if (upsertResult.error) {
+                      var msg = (upsertResult.error.message || "").toLowerCase();
+                      var code = String(upsertResult.error.code || "");
+                      var isUsernameTaken = code === "23505" || msg.indexOf("unique") !== -1 || msg.indexOf("username") !== -1 || msg.indexOf("duplicate") !== -1;
+                      if (isUsernameTaken) { showErr("This username is already taken. Choose another."); return; }
+                      var fallbackUsername = username + "_" + Math.random().toString(36).slice(2, 8);
+                      supabase.from("profiles").insert({ id: user.id, username: fallbackUsername, profile: defaultProfile, analytics: { pageViews: 0, linkClicks: {} } }).then(function (ins) {
+                        if (ins.error) { showErr("Could not save profile. Try another username or run supabase-profiles.sql in Supabase SQL Editor."); return; }
+                        goToApp();
+                      }).catch(function () { showErr("Connection error. Try again."); });
                       return;
                     }
-                    window.location.replace(window.location.pathname.replace(/register\.html$/, "index.html") || "index.html");
-                  }).catch(function () {
-                    if (errorEl) errorEl.textContent = "Connection error. Try again.";
-                    if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
-                  });
+                    goToApp();
+                  }).catch(function () { showErr("Connection error. Try again."); });
                 })
                 .catch(function () {
                   if (errorEl) errorEl.textContent = "Connection error. Check supabase-config.js.";
@@ -257,12 +262,12 @@
                   if (result.data.token) {
                     try { localStorage.setItem("taply_token", result.data.token); } catch (err) {}
                   }
-                  window.location.replace(window.location.pathname.replace(/register\.html$/, "index.html") || "index.html");
+                  window.location.replace(window.location.origin + "/dashboard");
                 } else {
                   var errMsg = (result.data && result.data.error) ? result.data.error : "Sign-up error.";
                   var emailInUse = errMsg.toLowerCase().indexOf("already") !== -1 || errMsg.toLowerCase().indexOf("in use") !== -1;
                   if (emailInUse && email) {
-                    var loginUrl = "login.html?email=" + encodeURIComponent(email);
+                    var loginUrl = "/login?email=" + encodeURIComponent(email);
                     window.location.replace(window.location.pathname.replace(/register\.html$/, "") + loginUrl);
                     return;
                   }
@@ -272,7 +277,7 @@
               })
               .catch(function () {
                 var isLocal = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-                if (errorEl) errorEl.textContent = isLocal ? "Connection error. Start the server (double-click Taply.command or ./start.sh), then open: http://localhost:8001/register.html" : "Connection error. Please check your internet and try again.";
+                if (errorEl) errorEl.textContent = isLocal ? "Connection error. Start the server (double-click Taply.command or ./start.sh), then open: http://localhost:8001/register" : "Connection error. Please check your internet and try again.";
                 if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
               });
           });

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Email confirmed – Taply</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      .confirm-page .confirm-icon-wrap {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        border-radius: 50%;
+        background: rgba(167, 139, 250, 0.2);
+        border: 2px solid rgba(167, 139, 250, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .confirm-page .confirm-icon-wrap svg {
+        width: 44px;
+        height: 44px;
+        color: #a78bfa;
+      }
+      .confirm-page .login-title {
+        margin-bottom: 12px;
+      }
+      .confirm-page .confirm-subtitle {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.75);
+        margin: 0 0 32px;
+        line-height: 1.5;
+      }
+      .confirm-page .confirm-btn {
+        display: inline-block;
+        width: 100%;
+        padding: 16px 24px;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+        text-decoration: none;
+        color: #fff;
+        background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .confirm-page .confirm-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
+      }
+    </style>
+  </head>
+  <body class="login-page confirm-page">
+    <div class="login-bg"></div>
+
+    <header class="login-header">
+      <a href="/landing" class="login-logo">Taply</a>
+    </header>
+
+    <main class="login-main">
+      <div class="login-card" style="max-width: 420px;">
+        <div class="confirm-icon-wrap" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        </div>
+        <h1 class="login-title">Thanks for your confirmation</h1>
+        <p class="confirm-subtitle">Your email is confirmed. You can now sign in and start building your link in bio.</p>
+        <a href="/login" class="confirm-btn">Log in</a>
+      </div>
+    </main>
+
+    <footer class="login-page-footer">
+      <p>© Taply · <a href="privacy.html">Privacy</a> · 100% free</p>
+    </footer>
+  </body>
+</html>

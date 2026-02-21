@@ -239,6 +239,18 @@ body {
   align-items: center;
 }
 
+.profile-subdomain-row {
+  margin-top: 10px;
+}
+
+.profile-link-sublabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  flex: 0 0 auto;
+  min-width: 90px;
+}
+
 .profile-link-input {
   flex: 1;
   padding: 10px 12px;

@@ -25,6 +25,53 @@ app.use(cors());
 const bodyLimit = "50mb";
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ limit: bodyLimit, extended: true }));
+
+// Subdomenii (ex: cata2006.taply.app) – setează SUBDOMAIN_DOMAIN=taply.app în .env
+const SUBDOMAIN_DOMAIN = (process.env.SUBDOMAIN_DOMAIN || "").trim().toLowerCase();
+const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "mail", "admin", "dashboard", "staging"]);
+if (SUBDOMAIN_DOMAIN) {
+  const subdomainConfigPath = path.join(__dirname, "subdomain-config.js");
+  try {
+    fs.writeFileSync(subdomainConfigPath, "window.SUBDOMAIN_DOMAIN = " + JSON.stringify(SUBDOMAIN_DOMAIN) + ";\n", "utf8");
+  } catch (e) {
+    console.warn("Could not write subdomain-config.js:", e.message);
+  }
+  app.use((req, res, next) => {
+    const host = (req.hostname || "").toLowerCase();
+    if (!host.endsWith("." + SUBDOMAIN_DOMAIN) || host === SUBDOMAIN_DOMAIN) return next();
+    const sub = host.split(".")[0];
+    if (!sub || RESERVED_SUBDOMAINS.has(sub)) return next();
+    const pathname = (req.path || "/").replace(/\/$/, "") || "/";
+    if (pathname === "/" || pathname === "/profile.html") {
+      return res.sendFile(path.join(__dirname, "profile.html"));
+    }
+    next();
+  });
+}
+
+// Rute curate: fără .html în URL – numele path-ului spune ce face
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "landing.html")));
+app.get("/landing", (req, res) => res.sendFile(path.join(__dirname, "landing.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "login.html")));
+app.get("/register", (req, res) => res.sendFile(path.join(__dirname, "register.html")));
+app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
+app.get("/forgot-password", (req, res) => res.sendFile(path.join(__dirname, "forgot-password.html")));
+app.get("/reset-password", (req, res) => res.sendFile(path.join(__dirname, "reset-password.html")));
+app.get("/confirm-email", (req, res) => res.sendFile(path.join(__dirname, "confirm-email.html")));
+app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "privacy.html")));
+app.get("/index.html", (req, res) => res.redirect(302, "/dashboard"));
+
+// Linkuri curate: /username → profile (înainte de static ca să nu fie servite ca fișiere)
+const RESERVED_PATHS = new Set([
+  "api", "login", "register", "landing", "profile", "index", "privacy", "dashboard",
+  "forgot-password", "reset-password", "confirm-email", "data", "assets"
+]);
+app.get("/:username", (req, res, next) => {
+  const seg = (req.params.username || "").trim();
+  if (!seg || seg.includes(".") || RESERVED_PATHS.has(seg.toLowerCase())) return next();
+  res.redirect(302, "/profile.html?u=" + encodeURIComponent(seg));
+});
+
 app.use(express.static(__dirname));
 
 function ensureDataDir() {
@@ -146,12 +193,16 @@ app.get("/api/me", authMiddleware, (req, res) => {
   });
 });
 
-// PUT /api/me - actualizează profil
+// PUT /api/me - actualizează profil (și username pentru link name)
 app.put("/api/me", authMiddleware, (req, res) => {
   const data = readUsers();
   const user = data.users.find((u) => u.id === req.user.id);
   if (!user) return res.status(401).json({ error: "Utilizator negăsit." });
-  if (req.body.profile) user.profile = { ...user.profile, ...req.body.profile };
+  if (req.body.profile) {
+    user.profile = { ...user.profile, ...req.body.profile };
+    if (req.body.profile.username !== undefined) user.username = (req.body.profile.username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || user.username;
+  }
+  if (req.body.username !== undefined) user.username = (req.body.username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || user.username;
   if (req.body.analytics) user.analytics = { ...user.analytics, ...req.body.analytics };
   writeUsers(data);
   res.json({ username: user.username, profile: user.profile });
@@ -261,7 +312,7 @@ function startServer(port) {
       fs.writeFileSync(path.join(__dirname, ".taply-port"), String(port), "utf8");
     } catch (e) {}
     console.log("Taply running at http://localhost:" + port);
-    console.log("Open in browser: http://localhost:" + port + "/landing.html");
+    console.log("Open in browser: http://localhost:" + port + "/landing");
   });
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE" && port < 8010) {

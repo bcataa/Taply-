@@ -14,12 +14,13 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="supabase-config.js"></script>
+    <script src="subdomain-config.js"></script>
   </head>
   <body>
     <main class="app" id="app">
       <!-- PAS 1: Alege username (după email, ca pe Linktree) -->
       <div class="view view-username" id="viewUsername" hidden>
-        <a href="login.html?register=1" class="username-back">← Back</a>
+        <a href="/login?register=1" class="username-back">← Back</a>
         <section class="username-panel">
           <h1 class="username-title">Choose your username</h1>
           <p class="username-subtitle">Pick something similar to your social handles so people can find you easily.</p>
@@ -34,7 +35,7 @@
       <!-- ONBOARDING: temă, platforme, profil -->
       <div class="view view-onboarding" id="viewOnboarding" hidden>
         <header class="app-header">
-          <a href="landing.html" class="logo">Taply</a>
+          <a href="/landing" class="logo">Taply</a>
           <nav class="steps" aria-label="Steps" id="onboardingSteps">
             <span class="step is-active" data-step="1">1</span>
             <span class="step" data-step="2">2</span>
@@ -268,6 +269,11 @@
                 <div class="profile-link-row">
                   <input type="text" id="dashboardLinkUrl" class="profile-link-input" readonly />
                   <button type="button" class="ghost" id="copyLinkBtn">Copy</button>
+                </div>
+                <div class="profile-link-row profile-subdomain-row" id="profileSubdomainRow" hidden>
+                  <span class="profile-link-label profile-link-sublabel">Or subdomain:</span>
+                  <input type="text" id="dashboardLinkSubdomainUrl" class="profile-link-input" readonly />
+                  <button type="button" class="ghost" id="copySubdomainLinkBtn">Copy</button>
                 </div>
               </div>
               <button type="button" class="primary" id="saveProfile">Save</button>

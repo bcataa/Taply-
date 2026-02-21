@@ -164,16 +164,17 @@
   function saveProfile(profile) {
     if (currentUser) {
       currentUser.profile = profile;
+      var slug = (profile.username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || (currentUser.username || "user");
       var supabase = getSupabase();
       if (supabase && currentUser.id) {
-        return supabase.from("profiles").update({ profile: profile }).eq("id", currentUser.id).then(function (r) { if (r.error) throw new Error(r.error.message); return r; }).catch(function () {});
+        return supabase.from("profiles").update({ profile: profile, username: slug }).eq("id", currentUser.id).then(function (r) { if (r.error) throw new Error(r.error.message); return r; }).catch(function () {});
       }
       const token = getToken();
       if (token) {
         return fetch(window.location.origin + "/api/me", {
           method: "PUT",
           headers: apiHeaders(),
-          body: JSON.stringify({ profile: profile }),
+          body: JSON.stringify({ profile: profile, username: slug }),
         }).then(function (r) { if (!r.ok) throw new Error(); return r; }).catch(function () {});
       }
       return Promise.resolve();
@@ -260,6 +261,9 @@
   const dashboardUsername = document.getElementById("dashboardUsername");
   const dashboardLinkUrl = document.getElementById("dashboardLinkUrl");
   const copyLinkBtn = document.getElementById("copyLinkBtn");
+  const profileSubdomainRow = document.getElementById("profileSubdomainRow");
+  const dashboardLinkSubdomainUrl = document.getElementById("dashboardLinkSubdomainUrl");
+  const copySubdomainLinkBtn = document.getElementById("copySubdomainLinkBtn");
   const saveProfileBtn = document.getElementById("saveProfile");
   const dashboardPlatforms = document.getElementById("dashboardPlatforms");
   const socialUrls = document.getElementById("socialUrls");
@@ -659,7 +663,8 @@
     if (!profile) return;
 
     const username = (currentUser && currentUser.username) || profile.username || "";
-    var profileFullUrl = window.location.origin + (window.location.pathname || "").replace(/[^/]*$/, "") + "profile.html?u=" + encodeURIComponent(username || "my-profile");
+    var slugNorm = (username || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
+    var profileFullUrl = window.location.origin + "/" + slugNorm;
     const profileLinkEl = document.getElementById("dashboardProfileLink");
     if (profileLinkEl) {
       profileLinkEl.href = username ? profileFullUrl : "#";
@@ -701,14 +706,19 @@
     window.updateDashboardLinkDisplay = function () {
       var p = getProfile();
       var u = (currentUser && currentUser.username) || p.username || "";
-      var fullUrl = window.location.origin + (window.location.pathname || "").replace(/[^/]*$/, "") + "profile.html?u=" + encodeURIComponent(u || "my-profile");
+      var s = (u || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
+      var fullUrl = window.location.origin + "/" + s;
       if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
       if (previewFrame && u) previewFrame.src = fullUrl;
       if (dashboardLinkUrlPreview) dashboardLinkUrlPreview.value = fullUrl;
       if (dashboardLinkUrl) dashboardLinkUrl.value = fullUrl;
+      if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
+        profileSubdomainRow.hidden = !u;
+        if (u) dashboardLinkSubdomainUrl.value = "https://" + s + "." + window.SUBDOMAIN_DOMAIN;
+      }
       if (sidebarUsername) sidebarUsername.textContent = u || "—";
       if (dropdownUsername) dropdownUsername.textContent = u || "—";
-      if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = (window.location.hostname || "taply.ro") + "/" + (u || "my-profile"); }
+      if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = (window.location.hostname || "taply.ro") + "/" + s; }
     };
     if (dropdownAvatarImg && profile.avatar) {
       dropdownAvatarImg.src = profile.avatar;
@@ -781,15 +791,15 @@
       if (supabase) {
         supabase.auth.signOut().then(function () {
           try { localStorage.removeItem(TOKEN_KEY); } catch (err) {}
-          window.location.href = "login.html";
+          window.location.href = "/login";
         }).catch(function () {
           try { localStorage.removeItem(TOKEN_KEY); } catch (err) {}
-          window.location.href = "login.html";
+          window.location.href = "/login";
         });
         return;
       }
       try { localStorage.removeItem(TOKEN_KEY); } catch (err) {}
-      window.location.href = "login.html";
+      window.location.href = "/login";
     }
     if (logoutBtn) logoutBtn.addEventListener("click", doLogout);
     if (dropdownLogoutBtn) dropdownLogoutBtn.addEventListener("click", function () { closeAccountDropdown(); doLogout(); });
@@ -828,10 +838,9 @@
 
     function getProfilePreviewUrl() {
       var p = getProfile();
-      var base = window.location.origin + (window.location.pathname || "").replace(/[^/]*$/, "") || window.location.origin;
       var username = (p && p.username) || (currentUser && currentUser.username) || (dashboardUsername && dashboardUsername.value.trim()) || "my-profile";
       var slug = (username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-      return base + "profile.html?u=" + encodeURIComponent(slug);
+      return window.location.origin + "/" + slug;
     }
     function refreshDesignModalPreview() {
       if (!customDesignPreviewFrame || !customDesignPreviewFrame.src) return;
@@ -845,7 +854,7 @@
           customDesignModal.hidden = false;
           document.body.style.overflow = "hidden";
           if (customDesignPreviewFrame) {
-            var previewUrl = (previewFrame && previewFrame.src && previewFrame.src.indexOf("profile.html") >= 0) ? previewFrame.src : getProfilePreviewUrl();
+            var previewUrl = (previewFrame && previewFrame.src && previewFrame.src.startsWith(window.location.origin + "/")) ? previewFrame.src : getProfilePreviewUrl();
             customDesignPreviewFrame.src = previewUrl;
             setTimeout(refreshDesignModalPreview, 100);
           }
@@ -1059,11 +1068,14 @@
 
     function updateProfileLinkUrl() {
       const p = getProfile();
-      const base = window.location.origin + (window.location.pathname || "").replace(/[^/]*$/, "") || window.location.origin;
       const username = (dashboardUsername && dashboardUsername.value.trim()) || (currentUser && currentUser.username) || (p && p.username) || "my-profile";
       const slug = username.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-      const link = base + "profile.html?u=" + encodeURIComponent(slug);
+      const link = window.location.origin + "/" + slug;
       if (dashboardLinkUrl) dashboardLinkUrl.value = link;
+      if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
+        profileSubdomainRow.hidden = !slug || slug === "my-profile";
+        if (slug && slug !== "my-profile") dashboardLinkSubdomainUrl.value = "https://" + slug + "." + window.SUBDOMAIN_DOMAIN;
+      }
     }
 
     if (dashboardUsername) {
@@ -1084,6 +1096,19 @@
         }
       });
     }
+    if (copySubdomainLinkBtn && dashboardLinkSubdomainUrl) {
+      copySubdomainLinkBtn.addEventListener("click", () => {
+        if (!dashboardLinkSubdomainUrl.value) return;
+        dashboardLinkSubdomainUrl.select();
+        try {
+          navigator.clipboard.writeText(dashboardLinkSubdomainUrl.value);
+          copySubdomainLinkBtn.textContent = "Copied!";
+          setTimeout(() => { copySubdomainLinkBtn.textContent = "Copy"; }, 2000);
+        } catch (e) {
+          alert("Link: " + dashboardLinkSubdomainUrl.value);
+        }
+      });
+    }
 
     saveProfileBtn.addEventListener("click", () => {
       const p = getProfile();
@@ -1096,6 +1121,7 @@
         saveProfileBtn.disabled = true;
         promise.then(function () {
           if (currentUser) currentUser.username = p.username;
+          if (dashboardUsername) dashboardUsername.value = p.username || "";
           updateProfileLinkUrl();
           if (typeof window.updateDashboardLinkDisplay === "function") window.updateDashboardLinkDisplay();
           refreshPreview();
@@ -1106,7 +1132,9 @@
           saveProfileBtn.disabled = false;
         });
       } else {
+        if (dashboardUsername) dashboardUsername.value = p.username || "";
         updateProfileLinkUrl();
+        if (typeof window.updateDashboardLinkDisplay === "function") window.updateDashboardLinkDisplay();
         refreshPreview();
         alert("Profile saved.");
       }
@@ -1385,31 +1413,37 @@
 
   function init() {
     if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
-      window.location.href = "login.html";
+      window.location.href = "/login";
       return;
     }
     var supabase = getSupabase();
     if (supabase) {
-      supabase.auth.getSession().then(function (sessionResult) {
-        var session = sessionResult.data && sessionResult.data.session;
-        if (!session || !session.user) {
-          try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
-          var profile = getProfile();
-          var params = new URLSearchParams(window.location.search);
-          var emailParam = params.get("email");
-          if (profile) {
-            showView("dashboard");
-            initDashboard();
-          } else if (emailParam) {
-            try { sessionStorage.setItem(PENDING_EMAIL_KEY, emailParam); } catch (err) {}
-            showView("username");
-            initUsername();
-          } else {
-            window.location.href = "login.html";
+      // După Google OAuth, Supabase redirecționează la /dashboard#access_token=... – dacă e hash OAuth, așteptăm puțin ca sesiunea să fie setată
+      var hasAuthHash = (window.location.hash || "").indexOf("access_token") !== -1;
+      function runSupabaseInit() {
+        supabase.auth.getSession().then(function (sessionResult) {
+          var session = sessionResult.data && sessionResult.data.session;
+          if (!session || !session.user) {
+            try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+            var profile = getProfile();
+            var params = new URLSearchParams(window.location.search);
+            var emailParam = params.get("email");
+            if (profile) {
+              showView("dashboard");
+              initDashboard();
+            } else if (emailParam) {
+              try { sessionStorage.setItem(PENDING_EMAIL_KEY, emailParam); } catch (err) {}
+              showView("username");
+              initUsername();
+            } else {
+              window.location.href = "/login";
+            }
+            return;
           }
-          return;
-        }
-        supabase.from("profiles").select("username, profile, analytics").eq("id", session.user.id).single().then(function (result) {
+          if (hasAuthHash && window.history && window.history.replaceState) {
+            try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+          }
+          supabase.from("profiles").select("username, profile, analytics").eq("id", session.user.id).single().then(function (result) {
           if (result.error || !result.data) {
             var meta = session.user.user_metadata || {};
             var username = (meta.username || (session.user.email || "").split("@")[0] || "user").toString().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "user";
@@ -1425,7 +1459,7 @@
               if (insertRes.error) {
                 var un = username + "_" + Math.random().toString(36).slice(2, 8);
                 supabase.from("profiles").insert({ id: session.user.id, username: un, profile: newProfile, analytics: defaultAnalytics() }).then(function (r2) {
-                  if (r2.error) { window.location.href = "login.html"; return; }
+                  if (r2.error) { window.location.href = "/login"; return; }
                   currentUser = { id: session.user.id, email: session.user.email || "", username: un, profile: newProfile, analytics: defaultAnalytics() };
                   showView("onboarding");
                   initOnboarding();
@@ -1460,15 +1494,17 @@
           if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {
             alert("Connection failed. Check your internet and that the server is running (./start.sh), then reload.");
           }
-          window.location.href = "login.html";
+          window.location.href = "/login";
         });
       }).catch(function (err) {
         var msg = (err && err.message) ? String(err.message) : "";
         if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {
           alert("Connection failed. Check your internet and that the server is running (./start.sh), then reload.");
         }
-        window.location.href = "login.html";
+        window.location.href = "/login";
       });
+      }
+      if (hasAuthHash) setTimeout(runSupabaseInit, 350); else runSupabaseInit();
       return;
     }
 
@@ -1476,14 +1512,14 @@
     if (token) {
       var apiOrigin = window.location.origin;
       if (!apiOrigin || apiOrigin === "null" || apiOrigin.indexOf("file") === 0) {
-        window.location.href = "login.html";
+        window.location.href = "/login";
         return;
       }
       fetch(apiOrigin + "/api/me", { headers: apiHeaders() })
         .then((r) => {
           if (!r.ok) {
             try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
-            window.location.href = "login.html";
+            window.location.href = "/login";
             return null;
           }
           return r.json();
@@ -1505,10 +1541,10 @@
           var msg = (err && err.message) ? String(err.message) : "";
           var isLocal = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
           if ((msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) && isLocal) {
-            alert("Connection failed. Start the server (./start.sh) and open the app at http://localhost:8001/index.html");
+            alert("Connection failed. Start the server (./start.sh) and open the app at http://localhost:8001/dashboard");
           }
           try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
-          window.location.href = "login.html";
+          window.location.href = "/login";
         });
       return;
     }
@@ -1523,7 +1559,7 @@
       showView("username");
       initUsername();
     } else {
-      window.location.href = "login.html";
+      window.location.href = "/login";
     }
   }
 
