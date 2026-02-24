@@ -112,7 +112,7 @@
           }
           var socialEl = document.getElementById("liveSocial");
           var simpleIconsCdn = "https://cdn.simpleicons.org";
-          var platformSlugs = { instagram: "instagram", whatsapp: "whatsapp", tiktok: "tiktok", youtube: "youtube", website: "globe", spotify: "spotify", threads: "threads", facebook: "facebook", x: "x", soundcloud: "soundcloud", snapchat: "snapchat", pinterest: "pinterest" };
+          var platformSlugs = { instagram: "instagram", whatsapp: "whatsapp", tiktok: "tiktok", youtube: "youtube", website: "globe", spotify: "spotify", threads: "threads", facebook: "facebook", x: "x", soundcloud: "soundcloud", snapchat: "snapchat", pinterest: "pinterest", steam: "steam", telegram: "telegram", discord: "discord", twitch: "twitch" };
           if (socialLinks.length > 0) {
             var linksHtml = socialLinks.map(function (entry) {
               var key = entry.platform || "website";
@@ -128,7 +128,7 @@
             socialEl.hidden = true;
           }
 
-          var linkIconSlugs = { youtube: "youtube", instagram: "instagram", tiktok: "tiktok", website: "globe", spotify: "spotify", link: "link" };
+          var linkIconSlugs = { youtube: "youtube", instagram: "instagram", tiktok: "tiktok", website: "globe", spotify: "spotify", steam: "steam", telegram: "telegram", discord: "discord", twitch: "twitch", link: "link" };
           function linkDomain(url) {
             try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return ""; }
           }
