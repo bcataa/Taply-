@@ -1643,6 +1643,18 @@ button.ghost {
 
   .mobile-preview-bar {
     display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 50;
+  }
+
+  .dashboard-main {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
   }
 }
 
@@ -1683,6 +1695,7 @@ button.ghost {
 
   .dashboard-main {
     padding: 16px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
   }
 
   .dashboard-sidebar {
