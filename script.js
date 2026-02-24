@@ -724,7 +724,7 @@
       profileLinkEl.href = username ? profileFullUrl : "#";
     }
     if (previewFrame && username) {
-      previewFrame.src = profileFullUrl;
+      previewFrame.src = profileFullUrl + (profileFullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
     }
     if (dashboardLinkUrlPreview) {
       dashboardLinkUrlPreview.value = profileDisplayUrl;
@@ -768,7 +768,8 @@
     if (dropdownUsername) dropdownUsername.textContent = username || "—";
     if (dropdownProfileLink) {
       dropdownProfileLink.href = profileFullUrl;
-      dropdownProfileLink.textContent = (window.location.hostname || "taply.ro") + "/" + (username || "my-profile");
+      dropdownProfileLink.textContent = username ? profileFullUrl : "—";
+      dropdownProfileLink.title = "Open profile";
     }
     window.updateDashboardLinkDisplay = function () {
       var p = getProfile();
@@ -777,7 +778,7 @@
       var fullUrl = window.location.origin + "/" + s;
       var displayUrl = (window.location.hostname || "taply.ro") + "/" + s;
       if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
-      if (previewFrame && u) previewFrame.src = fullUrl;
+      if (previewFrame && u) previewFrame.src = fullUrl + (fullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
       if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
@@ -795,7 +796,7 @@
       }
       if (sidebarUsername) sidebarUsername.textContent = u || "—";
       if (dropdownUsername) dropdownUsername.textContent = u || "—";
-      if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = displayUrl; }
+      if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = u ? fullUrl : "—"; }
     };
     if (dropdownAvatarImg && profile.avatar) {
       dropdownAvatarImg.src = profile.avatar;

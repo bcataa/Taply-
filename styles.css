@@ -1049,6 +1049,9 @@ button.ghost {
   bottom: 100%;
   left: 16px;
   right: 16px;
+  min-width: 280px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
   margin-bottom: 8px;
   background: #fff;
   border-radius: 14px;
@@ -1101,7 +1104,7 @@ button.ghost {
 
 .dropdown-profile-info {
   flex: 1;
-  min-width: 0;
+  min-width: 180px;
 }
 
 .dropdown-username {
@@ -1113,9 +1116,14 @@ button.ghost {
 }
 
 .dropdown-profile-link {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--primary);
   text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  display: block;
+  line-height: 1.4;
+  white-space: normal;
 }
 
 .dropdown-profile-link:hover {
@@ -1562,20 +1570,20 @@ button.ghost {
 }
 
 .preview-phone-frame {
-  width: 280px;
+  width: 260px;
   max-width: 100%;
   aspect-ratio: 9 / 19.5;
   max-height: 100%;
-  background: #1c1c1e;
-  border-radius: 44px;
-  padding: 12px;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3), 0 0 0 2px #2c2c2e, inset 0 0 0 2px #3a3a3c;
+  background: #1a1a1a;
+  border-radius: 38px;
+  padding: 6px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 .preview-phone-screen {
   width: 100%;
   height: 100%;
-  border-radius: 34px;
+  border-radius: 32px;
   overflow: hidden;
   background: #fff;
   position: relative;
@@ -1584,13 +1592,13 @@ button.ghost {
 /* Dynamic Island (insula iPhone) */
 .preview-phone-dynamic-island {
   position: absolute;
-  top: 10px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
-  width: 110px;
-  height: 32px;
+  width: 90px;
+  height: 26px;
   background: #000;
-  border-radius: 20px;
+  border-radius: 16px;
   z-index: 10;
 }
 
@@ -2261,19 +2269,23 @@ button.ghost {
   color: var(--muted);
 }
 
-/* Live profile page – pe toată pagina */
+/* Live profile page – pe toată pagina, optimizat mobil ca Linktree */
 #profilePage {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .live-header {
   position: fixed;
   top: 12px;
+  top: max(12px, env(safe-area-inset-top));
   left: 12px;
+  left: max(12px, env(safe-area-inset-left));
   z-index: 10;
 }
 
@@ -2334,7 +2346,12 @@ button.ghost {
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 48px 24px 64px;
+  padding-top: max(48px, calc(env(safe-area-inset-top) + 24px));
+  padding-bottom: max(64px, calc(env(safe-area-inset-bottom) + 32px));
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2350,9 +2367,12 @@ body.has-custom-bg .live-page-wrap {
 body.live-page {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 body.live-page.theme-midnight { background: #0a0a0a; color: #fff; }
@@ -2363,6 +2383,16 @@ body.live-page.theme-forest { background: linear-gradient(180deg, #0b2b26, #8dce
 body.live-page.theme-minimal { background: linear-gradient(180deg, #f1f1f3, #fff, #f1f1f3); color: #2a2a2a; }
 body.live-page.theme-leather { background: linear-gradient(180deg, #3d3428, #6b5d4d, #8a7a68); color: #fff; }
 body.live-page.theme-purple { background: linear-gradient(180deg, #2d1b4e, #5c3d8a, #8b6bb8); color: #fff; }
+
+/* Embed mode – reduced margins for phone preview iframe */
+body.profile-embed .live-page-wrap {
+  padding: 16px 12px 24px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  min-height: auto;
+}
 
 /* Animații pagină live – wow factor */
 @keyframes liveFadeUp {
@@ -2684,8 +2714,15 @@ body.live-page.theme-minimal .live-link.is-highlight,
   opacity: 1;
 }
 
-/* Pagina live pe telefon – mai compactă, ca Linktree */
+/* Pagina live pe telefon – mai compactă, ca Linktree, cu safe areas */
 @media (max-width: 480px) {
+  .live-page-wrap {
+    padding-top: max(32px, calc(env(safe-area-inset-top) + 16px));
+    padding-bottom: max(40px, calc(env(safe-area-inset-bottom) + 24px));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
   .live-profile {
     max-width: 100%;
     padding: 0 16px;

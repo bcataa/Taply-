@@ -2,10 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0a0a" id="themeColorMeta" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Link in Bio – Taply</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <meta name="description" content="Link in bio page – one link for all your content. Made with Taply, free." />
+    <meta name="description" content="Link in bio page – one link for all your content. Free." />
     <meta property="og:title" content="Link in Bio – Taply" />
     <meta property="og:description" content="One link for everything. View my links." />
     <meta property="og:type" content="website" />
@@ -35,13 +38,18 @@
         <p class="live-bio" id="liveBio"></p>
         <div class="live-social" id="liveSocial"></div>
         <div class="live-links" id="liveLinks"></div>
-        <p class="live-footer"><a href="/landing" class="live-footer-link">Made with Taply</a></p>
       </div>
     </div>
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
         var username = params.get("u");
+        var isEmbed = params.get("embed") === "1";
+        if (isEmbed) {
+          document.body.classList.add("profile-embed");
+          var header = document.querySelector(".live-header");
+          if (header) header.style.display = "none";
+        }
         if (!username && window.SUBDOMAIN_DOMAIN) {
           var h = window.location.hostname || "";
           if (h.endsWith("." + window.SUBDOMAIN_DOMAIN) && h !== window.SUBDOMAIN_DOMAIN) {
@@ -58,6 +66,9 @@
           var theme = profile.theme || "midnight";
           document.body.classList.add("live-page", "theme-" + theme);
           wrap.classList.add("live-page", "theme-" + theme);
+          var themeColors = { midnight: "#0a0a0a", sunset: "#e46e47", grid: "#5b2c2c", ivory: "#f5ede1", forest: "#0b2b26", minimal: "#f1f1f3", leather: "#3d3428", purple: "#2d1b4e" };
+          var meta = document.getElementById("themeColorMeta");
+          if (meta && themeColors[theme]) meta.setAttribute("content", themeColors[theme]);
           if (profile.customBackgroundImage) {
             document.body.classList.add("has-custom-bg");
             var pos = profile.customBackgroundPosition || "center center";
@@ -132,7 +143,10 @@
           function linkDomain(url) {
             try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return ""; }
           }
-          var links = profile.links || [];
+          var links = (profile.links || []).filter(function (l) {
+            var t = (l.title || "").toLowerCase();
+            return t.indexOf("made with taply") === -1;
+          });
           var linksEl = document.getElementById("liveLinks");
           links.forEach(function (link) {
             if (link.type === "section") {

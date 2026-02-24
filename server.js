@@ -59,6 +59,7 @@ app.get("/forgot-password", (req, res) => res.sendFile(path.join(__dirname, "for
 app.get("/reset-password", (req, res) => res.sendFile(path.join(__dirname, "reset-password.html")));
 app.get("/confirm-email", (req, res) => res.sendFile(path.join(__dirname, "confirm-email.html")));
 app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "privacy.html")));
+app.get("/help", (req, res) => res.sendFile(path.join(__dirname, "help.html")));
 app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "profile.html")));
 app.get("/index.html", (req, res) => res.redirect(302, "/dashboard"));
 
