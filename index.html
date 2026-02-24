@@ -153,11 +153,6 @@
 
           <!-- Main: Links / Design / etc. -->
           <main class="dashboard-main">
-            <div class="mobile-preview-bar" id="mobilePreviewBar" aria-label="Preview link - copy or open in new tab">
-              <input type="text" id="mobilePreviewUrl" class="mobile-preview-input" readonly />
-              <button type="button" class="ghost mobile-preview-copy" id="mobilePreviewCopy" title="Copy">⎘</button>
-              <a href="#" target="_blank" rel="noopener" class="primary mobile-preview-open" id="mobilePreviewOpen">Open preview</a>
-            </div>
             <section class="dashboard-panel is-active" id="panelLinks">
               <div class="links-header">
                 <h2>Links</h2>
@@ -360,6 +355,14 @@
               </div>
             </div>
           </aside>
+        </div>
+        <!-- Mobile: bară jos, ca sidebar, cu link + Open preview -->
+        <div class="mobile-preview-bar" id="mobilePreviewBar" aria-label="Preview link - copy or open in new tab">
+          <div class="mobile-preview-link-wrap">
+            <textarea id="mobilePreviewUrl" class="mobile-preview-input" readonly rows="2"></textarea>
+            <button type="button" class="mobile-preview-copy-btn" id="mobilePreviewCopy" title="Copy">⎘</button>
+          </div>
+          <a href="#" target="_blank" rel="noopener" class="mobile-preview-open-btn" id="mobilePreviewOpen">Open preview</a>
         </div>
       </div>
     </main>
