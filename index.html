@@ -96,7 +96,7 @@
           <!-- Sidebar: nav top, link + account bottom -->
           <aside class="dashboard-sidebar">
             <nav class="sidebar-nav">
-              <span class="sidebar-nav-title"><span class="sidebar-taply-logo" aria-hidden="true">T</span> Taply</span>
+              <span class="sidebar-nav-title"><img src="/favicon.svg" alt="" class="sidebar-taply-logo-img" width="24" height="24" /><span>Taply</span></span>
               <a href="#links" class="sidebar-tab is-active"><span class="sidebar-tab-icon">📎</span>Links</a>
               <a href="#theme" class="sidebar-tab"><span class="sidebar-tab-icon">🎨</span>Design</a>
               <a href="#profile" class="sidebar-tab"><span class="sidebar-tab-icon">👤</span>Profile</a>
@@ -153,6 +153,11 @@
 
           <!-- Main: Links / Design / etc. -->
           <main class="dashboard-main">
+            <div class="mobile-preview-bar" id="mobilePreviewBar" aria-label="Preview link - copy or open in new tab">
+              <input type="text" id="mobilePreviewUrl" class="mobile-preview-input" readonly />
+              <button type="button" class="ghost mobile-preview-copy" id="mobilePreviewCopy" title="Copy">⎘</button>
+              <a href="#" target="_blank" rel="noopener" class="primary mobile-preview-open" id="mobilePreviewOpen">Open preview</a>
+            </div>
             <section class="dashboard-panel is-active" id="panelLinks">
               <div class="links-header">
                 <h2>Links</h2>

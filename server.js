@@ -43,7 +43,7 @@ app.use((req, res, next) => {
   const sub = host.split(".")[0];
   if (!sub || RESERVED_SUBDOMAINS.has(sub)) return next();
   const pathname = (req.path || "/").replace(/\/$/, "") || "/";
-  if (pathname === "/" || pathname === "/profile.html") {
+  if (pathname === "/" || pathname === "/profile" || pathname === "/profile.html") {
     return res.sendFile(path.join(__dirname, "profile.html"));
   }
   next();
@@ -59,6 +59,7 @@ app.get("/forgot-password", (req, res) => res.sendFile(path.join(__dirname, "for
 app.get("/reset-password", (req, res) => res.sendFile(path.join(__dirname, "reset-password.html")));
 app.get("/confirm-email", (req, res) => res.sendFile(path.join(__dirname, "confirm-email.html")));
 app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "privacy.html")));
+app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "profile.html")));
 app.get("/index.html", (req, res) => res.redirect(302, "/dashboard"));
 
 // Short links: /go/:username/:slug → redirect la URL din profile.shortLinks
@@ -71,23 +72,23 @@ app.get("/go/:username/:slug", (req, res, next) => {
     if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
       return res.redirect(302, target);
     }
-    return res.redirect(302, "/profile.html?u=" + encodeURIComponent(username));
+    return res.redirect(302, "/profile?u=" + encodeURIComponent(username));
   }
 
   if (supabaseAdmin) {
     supabaseAdmin.from("profiles").select("profile").eq("username", username).single()
       .then((result) => {
-        if (result.error || !result.data) return res.redirect(302, "/profile.html?u=" + encodeURIComponent(username));
+        if (result.error || !result.data) return res.redirect(302, "/profile?u=" + encodeURIComponent(username));
         const shortLinks = (result.data.profile || {}).shortLinks || {};
         return doRedirect(shortLinks[slug]);
       })
-      .catch(() => res.redirect(302, "/profile.html?u=" + encodeURIComponent(username)));
+      .catch(() => res.redirect(302, "/profile?u=" + encodeURIComponent(username)));
     return;
   }
 
   const data = readUsers();
   const user = data.users.find((u) => (u.username || "").toLowerCase() === username);
-  if (!user) return res.redirect(302, "/profile.html?u=" + encodeURIComponent(username));
+  if (!user) return res.redirect(302, "/profile?u=" + encodeURIComponent(username));
   const shortLinks = (user.profile || {}).shortLinks || {};
   doRedirect(shortLinks[slug]);
 });
@@ -100,7 +101,7 @@ const RESERVED_PATHS = new Set([
 app.get("/:username", (req, res, next) => {
   const seg = (req.params.username || "").trim();
   if (!seg || seg.includes(".") || RESERVED_PATHS.has(seg.toLowerCase())) return next();
-  res.redirect(302, "/profile.html?u=" + encodeURIComponent(seg));
+  res.redirect(302, "/profile?u=" + encodeURIComponent(seg));
 });
 
 app.use(express.static(__dirname));

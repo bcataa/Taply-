@@ -738,6 +738,10 @@
       sidebarLinkUrl.value = profileDisplayUrl;
       sidebarLinkUrl.dataset.fullUrl = profileFullUrl;
     }
+    var mobilePreviewUrl = document.getElementById("mobilePreviewUrl");
+    var mobilePreviewOpen = document.getElementById("mobilePreviewOpen");
+    if (mobilePreviewUrl) { mobilePreviewUrl.value = profileDisplayUrl; mobilePreviewUrl.dataset.fullUrl = profileFullUrl; }
+    if (mobilePreviewOpen) mobilePreviewOpen.href = username ? profileFullUrl : "#";
     if (copyLinkBtnPreview && dashboardLinkUrlPreview) {
       copyLinkBtnPreview.addEventListener("click", () => {
         var toCopy = dashboardLinkUrlPreview.dataset.fullUrl || dashboardLinkUrlPreview.value;
@@ -777,6 +781,10 @@
       if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
+      var mpUrl = document.getElementById("mobilePreviewUrl");
+      var mpOpen = document.getElementById("mobilePreviewOpen");
+      if (mpUrl) { mpUrl.value = displayUrl; mpUrl.dataset.fullUrl = fullUrl; }
+      if (mpOpen) mpOpen.href = u ? fullUrl : "#";
       if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
         profileSubdomainRow.hidden = !u;
         if (u) {
@@ -1179,6 +1187,19 @@
         } catch (e) {
           alert("Link: " + toCopy);
         }
+      });
+    }
+    var mobilePreviewCopy = document.getElementById("mobilePreviewCopy");
+    if (mobilePreviewCopy) {
+      mobilePreviewCopy.addEventListener("click", () => {
+        var mpUrl = document.getElementById("mobilePreviewUrl");
+        var toCopy = mpUrl && (mpUrl.dataset.fullUrl || mpUrl.value);
+        if (!toCopy) return;
+        try {
+          navigator.clipboard.writeText(toCopy);
+          mobilePreviewCopy.textContent = "✓";
+          setTimeout(() => { mobilePreviewCopy.textContent = "⎘"; }, 1500);
+        } catch (e) {}
       });
     }
     if (copySubdomainLinkBtn && dashboardLinkSubdomainUrl) {
