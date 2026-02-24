@@ -27,27 +27,27 @@ app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ limit: bodyLimit, extended: true }));
 
 // Subdomenii (ex: cata2006.taply.app) – setează SUBDOMAIN_DOMAIN=taply.app în .env
+// Pentru local: SUBDOMAIN_DOMAIN=localhost → cata2006.localhost
 const SUBDOMAIN_DOMAIN = (process.env.SUBDOMAIN_DOMAIN || "").trim().toLowerCase();
 const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "mail", "admin", "dashboard", "staging"]);
-if (SUBDOMAIN_DOMAIN) {
-  const subdomainConfigPath = path.join(__dirname, "subdomain-config.js");
-  try {
-    fs.writeFileSync(subdomainConfigPath, "window.SUBDOMAIN_DOMAIN = " + JSON.stringify(SUBDOMAIN_DOMAIN) + ";\n", "utf8");
-  } catch (e) {
-    console.warn("Could not write subdomain-config.js:", e.message);
-  }
-  app.use((req, res, next) => {
-    const host = (req.hostname || "").toLowerCase();
-    if (!host.endsWith("." + SUBDOMAIN_DOMAIN) || host === SUBDOMAIN_DOMAIN) return next();
-    const sub = host.split(".")[0];
-    if (!sub || RESERVED_SUBDOMAINS.has(sub)) return next();
-    const pathname = (req.path || "/").replace(/\/$/, "") || "/";
-    if (pathname === "/" || pathname === "/profile.html") {
-      return res.sendFile(path.join(__dirname, "profile.html"));
-    }
-    next();
-  });
+const effectiveSubdomainDomain = SUBDOMAIN_DOMAIN || "localhost";
+const subdomainConfigPath = path.join(__dirname, "subdomain-config.js");
+try {
+  fs.writeFileSync(subdomainConfigPath, "window.SUBDOMAIN_DOMAIN = " + JSON.stringify(SUBDOMAIN_DOMAIN || "localhost") + ";\n", "utf8");
+} catch (e) {
+  console.warn("Could not write subdomain-config.js:", e.message);
 }
+app.use((req, res, next) => {
+  const host = (req.hostname || "").toLowerCase();
+  if (!host.endsWith("." + effectiveSubdomainDomain) || host === effectiveSubdomainDomain) return next();
+  const sub = host.split(".")[0];
+  if (!sub || RESERVED_SUBDOMAINS.has(sub)) return next();
+  const pathname = (req.path || "/").replace(/\/$/, "") || "/";
+  if (pathname === "/" || pathname === "/profile.html") {
+    return res.sendFile(path.join(__dirname, "profile.html"));
+  }
+  next();
+});
 
 // Rute curate: fără .html în URL – numele path-ului spune ce face
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "landing.html")));
@@ -61,10 +61,41 @@ app.get("/confirm-email", (req, res) => res.sendFile(path.join(__dirname, "confi
 app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "privacy.html")));
 app.get("/index.html", (req, res) => res.redirect(302, "/dashboard"));
 
+// Short links: /go/:username/:slug → redirect la URL din profile.shortLinks
+app.get("/go/:username/:slug", (req, res, next) => {
+  const username = (req.params.username || "").toLowerCase();
+  const slug = (req.params.slug || "").toLowerCase().replace(/[^a-z0-9-_]/g, "");
+  if (!username || !slug) return next();
+
+  function doRedirect(target) {
+    if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
+      return res.redirect(302, target);
+    }
+    return res.redirect(302, "/profile.html?u=" + encodeURIComponent(username));
+  }
+
+  if (supabaseAdmin) {
+    supabaseAdmin.from("profiles").select("profile").eq("username", username).single()
+      .then((result) => {
+        if (result.error || !result.data) return res.redirect(302, "/profile.html?u=" + encodeURIComponent(username));
+        const shortLinks = (result.data.profile || {}).shortLinks || {};
+        return doRedirect(shortLinks[slug]);
+      })
+      .catch(() => res.redirect(302, "/profile.html?u=" + encodeURIComponent(username)));
+    return;
+  }
+
+  const data = readUsers();
+  const user = data.users.find((u) => (u.username || "").toLowerCase() === username);
+  if (!user) return res.redirect(302, "/profile.html?u=" + encodeURIComponent(username));
+  const shortLinks = (user.profile || {}).shortLinks || {};
+  doRedirect(shortLinks[slug]);
+});
+
 // Linkuri curate: /username → profile (înainte de static ca să nu fie servite ca fișiere)
 const RESERVED_PATHS = new Set([
   "api", "login", "register", "landing", "profile", "index", "privacy", "dashboard",
-  "forgot-password", "reset-password", "confirm-email", "data", "assets"
+  "forgot-password", "reset-password", "confirm-email", "data", "assets", "go"
 ]);
 app.get("/:username", (req, res, next) => {
   const seg = (req.params.username || "").trim();
@@ -224,7 +255,7 @@ function profileToPublicJson(username, p) {
     platforms: p.platforms || [],
     socialUrls: p.socialUrls || {},
     socialLinks: socialLinks,
-    links: (p.links || []).map((l) => ({ id: l.id, title: l.title, url: l.url, highlight: l.highlight, type: l.type, imageUrl: l.imageUrl, icon: l.icon })),
+    links: (p.links || []).map((l) => ({ id: l.id, title: l.title, url: l.url, highlight: l.highlight, type: l.type, imageUrl: l.imageUrl, icon: l.icon, section: l.section })),
   };
 }
 

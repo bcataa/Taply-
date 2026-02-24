@@ -1,1 +1,1 @@
-window.SUBDOMAIN_DOMAIN = "";
+window.SUBDOMAIN_DOMAIN = "localhost";

@@ -2,10 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Taply – Link in Bio (free)</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=2" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,7 +18,7 @@
   </head>
   <body>
     <main class="app" id="app">
-      <!-- PAS 1: Alege username (după email, ca pe Linktree) -->
+      <!-- Step 1: Choose username -->
       <div class="view view-username" id="viewUsername" hidden>
         <a href="/login?register=1" class="username-back">← Back</a>
         <section class="username-panel">
@@ -32,7 +32,7 @@
         </section>
       </div>
 
-      <!-- ONBOARDING: temă, platforme, profil -->
+      <!-- Onboarding: theme, platforms, profile -->
       <div class="view view-onboarding" id="viewOnboarding" hidden>
         <header class="app-header">
           <a href="/landing" class="logo">Taply</a>
@@ -90,45 +90,11 @@
         </section>
       </div>
 
-      <!-- DASHBOARD: layout ca Linktree (sidebar + conținut + previzualizare) -->
+      <!-- Dashboard: sidebar + content + preview -->
       <div class="view view-dashboard" id="viewDashboard" hidden>
         <div class="dashboard-layout">
-          <!-- Sidebar stânga -->
+          <!-- Sidebar: nav top, link + account bottom -->
           <aside class="dashboard-sidebar">
-            <div class="sidebar-user-wrap">
-              <button type="button" class="sidebar-user-trigger" id="accountDropdownTrigger" aria-expanded="false" aria-haspopup="true" aria-label="Open account menu">
-                <div class="sidebar-user">
-                  <div class="sidebar-avatar" id="sidebarAvatar">
-                    <img id="sidebarAvatarImg" alt="" hidden />
-                    <span class="sidebar-avatar-placeholder" id="sidebarAvatarPlaceholder" aria-hidden="true">👤</span>
-                  </div>
-                  <span class="sidebar-username" id="sidebarUsername">—</span>
-                  <span class="sidebar-user-arrow" aria-hidden="true">▼</span>
-                </div>
-              </button>
-              <div class="sidebar-account-dropdown" id="accountDropdown" role="menu" aria-hidden="true">
-                <div class="dropdown-profile-block">
-                  <div class="dropdown-avatar" id="dropdownAvatar">
-                    <img id="dropdownAvatarImg" alt="" hidden />
-                    <span class="dropdown-avatar-placeholder" id="dropdownAvatarPlaceholder">👤</span>
-                  </div>
-                  <div class="dropdown-profile-info">
-                    <strong class="dropdown-username" id="dropdownUsername">—</strong>
-                    <a href="#" class="dropdown-profile-link" id="dropdownProfileLink" target="_blank" rel="noopener">taply.ro/...</a>
-                  </div>
-                  <span class="dropdown-pro-pill">Pro</span>
-                </div>
-                <div class="dropdown-divider"></div>
-                <a href="#profile" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">👤</span>Account</a>
-                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">⚡</span>Keep Pro access</a>
-                <div class="dropdown-divider"></div>
-                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">?</span>Ask a question</a>
-                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">📄</span>Help topics</a>
-                <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">💡</span>Share feedback</a>
-                <div class="dropdown-divider"></div>
-                <button type="button" class="dropdown-logout" id="dropdownLogout" role="menuitem"><span class="dropdown-item-icon">↪</span>Log out</button>
-              </div>
-            </div>
             <nav class="sidebar-nav">
               <span class="sidebar-nav-title"><span class="sidebar-taply-logo" aria-hidden="true">T</span> Taply</span>
               <a href="#links" class="sidebar-tab is-active"><span class="sidebar-tab-icon">📎</span>Links</a>
@@ -139,19 +105,53 @@
             </nav>
             <div class="sidebar-tools">
               <span class="sidebar-nav-title">Tools</span>
-              <a href="#" class="sidebar-link"><span class="sidebar-tab-icon">🔗</span>Link shortener</a>
+              <a href="#link" class="sidebar-tab"><span class="sidebar-tab-icon">🔗</span>Link & QR</a>
             </div>
             <div class="sidebar-checklist">
               <p><strong>Checklist</strong></p>
               <p class="sidebar-checklist-progress" id="setupProgress">0% · 0 of 4</p>
               <a href="#links" class="sidebar-btn-setup">Complete setup</a>
             </div>
-            <div class="sidebar-footer">
-              <button type="button" class="sidebar-logout" id="dashboardLogout">Log out</button>
+            <div class="sidebar-bottom">
+              <div class="sidebar-link-box">
+                <input type="text" id="sidebarLinkUrl" class="sidebar-link-input" readonly />
+                <button type="button" class="sidebar-link-copy" id="sidebarCopyLink" title="Copy">⎘</button>
+              </div>
+              <button type="button" class="sidebar-account-row" id="accountDropdownTrigger" aria-expanded="false" aria-haspopup="true" aria-label="Open account menu">
+                <div class="sidebar-avatar" id="sidebarAvatar">
+                  <img id="sidebarAvatarImg" alt="" hidden />
+                  <span class="sidebar-avatar-placeholder" id="sidebarAvatarPlaceholder" aria-hidden="true">👤</span>
+                </div>
+                <div class="sidebar-account-info">
+                  <span class="sidebar-username" id="sidebarUsername">—</span>
+                  <span class="sidebar-plan-pill">Free</span>
+                </div>
+                <span class="sidebar-account-arrow" aria-hidden="true">›</span>
+              </button>
+              <div class="sidebar-account-dropdown" id="accountDropdown" role="menu" aria-hidden="true">
+              <div class="dropdown-profile-block">
+                <div class="dropdown-avatar" id="dropdownAvatar">
+                  <img id="dropdownAvatarImg" alt="" hidden />
+                  <span class="dropdown-avatar-placeholder" id="dropdownAvatarPlaceholder">👤</span>
+                </div>
+                <div class="dropdown-profile-info">
+                  <strong class="dropdown-username" id="dropdownUsername">—</strong>
+                  <a href="#" class="dropdown-profile-link" id="dropdownProfileLink" target="_blank" rel="noopener">taply.ro/...</a>
+                </div>
+                <span class="dropdown-pro-pill">Free</span>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a href="#profile" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">👤</span>Account</a>
+              <a href="#link" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">🔗</span>Link & QR</a>
+              <div class="dropdown-divider"></div>
+              <a href="#" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">?</span>Help</a>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-logout" id="dropdownLogout" role="menuitem"><span class="dropdown-item-icon">↪</span>Log out</button>
+              </div>
             </div>
           </aside>
 
-          <!-- Zona centrală: Linkuri / Design / etc. -->
+          <!-- Main: Links / Design / etc. -->
           <main class="dashboard-main">
             <section class="dashboard-panel is-active" id="panelLinks">
               <div class="links-header">
@@ -177,6 +177,10 @@
                   <label class="field"><span>Link on click</span><input type="url" id="linkFriendlyUrl" placeholder="https://..." /></label>
                 </div>
                 <label class="field field-checkbox"><input type="checkbox" id="linkHighlight" /><span>Highlight</span></label>
+                <label class="field field-checkbox"><input type="checkbox" id="linkIsSection" /><span>Section separator</span></label>
+                <div id="linkFormSectionTitle" hidden>
+                  <label class="field"><span>Section title</span><input type="text" id="linkSectionTitle" placeholder="e.g. Social" /></label>
+                </div>
                 <div class="form-actions">
                   <button type="button" class="ghost" id="linkFormCancel">Cancel</button>
                   <button type="button" class="primary" id="linkFormSave">Save</button>
@@ -264,19 +268,6 @@
                   <label class="field"><span>Bio</span><textarea id="dashboardBio" placeholder="Bio" maxlength="160"></textarea><span class="counter" id="dashboardBioCounter">0/160</span></label>
                 </div>
               </div>
-              <div class="profile-link-box">
-                <span class="profile-link-label">Your link</span>
-                <p class="profile-link-hint">Ca la Linktree: domeniul tău / numele tău (ex. taply.ro/cata)</p>
-                <div class="profile-link-row">
-                  <input type="text" id="dashboardLinkUrl" class="profile-link-input" readonly />
-                  <button type="button" class="ghost" id="copyLinkBtn">Copy</button>
-                </div>
-                <div class="profile-link-row profile-subdomain-row" id="profileSubdomainRow" hidden>
-                  <span class="profile-link-label profile-link-sublabel">Sau subdomeniu:</span>
-                  <input type="text" id="dashboardLinkSubdomainUrl" class="profile-link-input" readonly />
-                  <button type="button" class="ghost" id="copySubdomainLinkBtn">Copy</button>
-                </div>
-              </div>
               <button type="button" class="primary" id="saveProfile">Save</button>
             </section>
 
@@ -300,9 +291,55 @@
               </div>
               <div class="analytics-clicks" id="analyticsClicks"></div>
             </section>
+
+            <section class="dashboard-panel" id="panelLink">
+              <h2>Link & QR</h2>
+              <p class="subtitle">Your domain, subdomain and QR code for sharing.</p>
+              <div class="link-domain-section">
+                <div class="link-domain-block">
+                  <span class="link-domain-label">Main domain</span>
+                  <p class="link-domain-hint">Your link (e.g. taply.ro/username)</p>
+                  <div class="profile-link-row">
+                    <input type="text" id="dashboardLinkUrl" class="profile-link-input" readonly />
+                    <button type="button" class="ghost" id="copyLinkBtn">Copy</button>
+                  </div>
+                </div>
+                <div class="profile-subdomain-row link-domain-block" id="profileSubdomainRow" hidden>
+                  <span class="link-domain-label">Subdomain</span>
+                  <p class="link-domain-hint">username.taply.ro (when configured)</p>
+                  <div class="profile-link-row">
+                    <input type="text" id="dashboardLinkSubdomainUrl" class="profile-link-input" readonly />
+                    <button type="button" class="ghost" id="copySubdomainLinkBtn">Copy</button>
+                  </div>
+                </div>
+              </div>
+              <div class="link-qr-section">
+                <span class="link-domain-label">QR code</span>
+                <p class="link-domain-hint">Download for business cards, posters.</p>
+                <div class="qrcode-box" id="qrcodeBox">
+                  <div class="qrcode-placeholder" id="qrcodePlaceholder">
+                    <p>Save your profile with a username to generate QR.</p>
+                  </div>
+                  <canvas id="qrcodeCanvas" hidden></canvas>
+                  <img id="qrcodeImage" class="qrcode-img" alt="QR Code" hidden />
+                </div>
+                <div class="qrcode-actions" id="qrcodeActions" hidden>
+                  <a href="#" id="qrcodeDownload" class="btn-primary" download="taply-qr.png">Download PNG</a>
+                <button type="button" class="ghost" id="qrcodeCopy">Copy link</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="dashboard-panel" id="panelSections" hidden>
+              <h2>Sections</h2>
+              <p class="subtitle">Groups of links with titles (e.g. Social, Shop). Drag to reorder.</p>
+              <div class="sections-list" id="sectionsList"></div>
+              <p class="sections-hint">Add a section separator from the link form: check Section separator and enter the title.</p>
+            </section>
+
           </main>
 
-          <!-- Previzualizare dreapta -->
+          <!-- Preview right -->
           <aside class="dashboard-preview">
             <div class="preview-bar">
               <input type="text" id="dashboardLinkUrlPreview" class="preview-url-input" readonly />
@@ -310,7 +347,12 @@
               <a href="#" target="_blank" rel="noopener" class="primary preview-open" id="dashboardProfileLink">Open</a>
             </div>
             <div class="preview-frame-wrap">
-              <iframe id="previewFrame" class="preview-frame" title="Profile preview"></iframe>
+              <div class="preview-phone-frame">
+                <div class="preview-phone-screen">
+                  <div class="preview-phone-dynamic-island" aria-hidden="true"></div>
+                  <iframe id="previewFrame" class="preview-frame" title="Profile preview"></iframe>
+                </div>
+              </div>
             </div>
           </aside>
         </div>

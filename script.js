@@ -261,6 +261,8 @@
   const dashboardUsername = document.getElementById("dashboardUsername");
   const dashboardLinkUrl = document.getElementById("dashboardLinkUrl");
   const copyLinkBtn = document.getElementById("copyLinkBtn");
+  const sidebarLinkUrl = document.getElementById("sidebarLinkUrl");
+  const sidebarCopyLink = document.getElementById("sidebarCopyLink");
   const profileSubdomainRow = document.getElementById("profileSubdomainRow");
   const dashboardLinkSubdomainUrl = document.getElementById("dashboardLinkSubdomainUrl");
   const copySubdomainLinkBtn = document.getElementById("copySubdomainLinkBtn");
@@ -281,6 +283,9 @@
   const linkImageUrl = document.getElementById("linkImageUrl");
   const linkFriendlyUrl = document.getElementById("linkFriendlyUrl");
   const linkIcon = document.getElementById("linkIcon");
+  const linkIsSection = document.getElementById("linkIsSection");
+  const linkFormSectionTitle = document.getElementById("linkFormSectionTitle");
+  const linkSectionTitle = document.getElementById("linkSectionTitle");
   const statPageViews = document.getElementById("statPageViews");
   const analyticsClicks = document.getElementById("analyticsClicks");
   const previewFrame = document.getElementById("previewFrame");
@@ -507,8 +512,15 @@
       var platformName = platformLabels[key] || key;
       const row = document.createElement("div");
       row.className = "social-url-row";
+      row.draggable = true;
+      row.dataset.index = String(index);
       const labelWrap = document.createElement("div");
       labelWrap.className = "social-url-row-label-wrap";
+      const handle = document.createElement("span");
+      handle.className = "social-url-drag-handle";
+      handle.innerHTML = "⋮⋮";
+      handle.setAttribute("aria-label", "Reorder");
+      row.appendChild(handle);
       const icon = document.createElement("span");
       icon.className = "social-url-icon";
       icon.setAttribute("aria-hidden", "true");
@@ -553,7 +565,7 @@
       removeBtn.type = "button";
       removeBtn.className = "social-url-remove";
       removeBtn.innerHTML = "×";
-      removeBtn.setAttribute("aria-label", "Elimină " + platformName);
+      removeBtn.setAttribute("aria-label", "Remove " + platformName);
       removeBtn.addEventListener("click", () => {
         const p = getProfile();
         p.socialLinks = (p.socialLinks || []).filter((_, i) => i !== index);
@@ -567,6 +579,47 @@
       wrap.appendChild(row);
     });
     socialUrls.appendChild(wrap);
+    setupSocialUrlsDragDrop(socialUrls);
+  }
+
+  function setupSocialUrlsDragDrop(container) {
+    if (!container) return;
+    var draggedIdx = null;
+    container.querySelectorAll(".social-url-row").forEach(function (row) {
+      row.addEventListener("dragstart", function (e) {
+        draggedIdx = parseInt(row.dataset.index, 10);
+        e.dataTransfer.setData("text/plain", String(draggedIdx));
+        e.dataTransfer.effectAllowed = "move";
+        row.classList.add("social-url-row-dragging");
+      });
+      row.addEventListener("dragend", function () {
+        row.classList.remove("social-url-row-dragging");
+        draggedIdx = null;
+      });
+      row.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        var idx = parseInt(row.dataset.index, 10);
+        if (draggedIdx !== null && idx !== draggedIdx) row.classList.add("social-url-row-drag-over");
+      });
+      row.addEventListener("dragleave", function () {
+        row.classList.remove("social-url-row-drag-over");
+      });
+      row.addEventListener("drop", function (e) {
+        e.preventDefault();
+        row.classList.remove("social-url-row-drag-over");
+        var toIdx = parseInt(row.dataset.index, 10);
+        if (draggedIdx === null || draggedIdx === toIdx) return;
+        var p = getProfile();
+        var links = p.socialLinks || [];
+        var item = links.splice(draggedIdx, 1)[0];
+        links.splice(toIdx, 0, item);
+        p.socialLinks = links;
+        saveProfile(p);
+        renderSocialUrls();
+        if (window.__taplyLiveRefresh) window.__taplyLiveRefresh();
+      });
+    });
   }
 
   function showOnboardingStep(step) {
@@ -681,6 +734,10 @@
       dashboardLinkUrl.value = profileDisplayUrl;
       dashboardLinkUrl.dataset.fullUrl = profileFullUrl;
     }
+    if (sidebarLinkUrl) {
+      sidebarLinkUrl.value = profileDisplayUrl;
+      sidebarLinkUrl.dataset.fullUrl = profileFullUrl;
+    }
     if (copyLinkBtnPreview && dashboardLinkUrlPreview) {
       copyLinkBtnPreview.addEventListener("click", () => {
         var toCopy = dashboardLinkUrlPreview.dataset.fullUrl || dashboardLinkUrlPreview.value;
@@ -719,6 +776,7 @@
       if (previewFrame && u) previewFrame.src = fullUrl;
       if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
+      if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
       if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
         profileSubdomainRow.hidden = !u;
         if (u) {
@@ -1084,6 +1142,7 @@
       const fullUrl = window.location.origin + "/" + slug;
       const displayUrl = (window.location.hostname || "taply.ro") + "/" + slug;
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
+      if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
       if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
         profileSubdomainRow.hidden = !slug || slug === "my-profile";
         if (slug && slug !== "my-profile") {
@@ -1098,6 +1157,17 @@
       dashboardUsername.addEventListener("change", updateProfileLinkUrl);
     }
 
+    if (sidebarCopyLink && sidebarLinkUrl) {
+      sidebarCopyLink.addEventListener("click", () => {
+        var toCopy = sidebarLinkUrl.dataset.fullUrl || sidebarLinkUrl.value;
+        if (!toCopy) return;
+        try {
+          navigator.clipboard.writeText(toCopy);
+          sidebarCopyLink.textContent = "✓";
+          setTimeout(() => { sidebarCopyLink.textContent = "⎘"; }, 1500);
+        } catch (e) { alert("Link: " + toCopy); }
+      });
+    }
     if (copyLinkBtn) {
       copyLinkBtn.addEventListener("click", () => {
         var toCopy = dashboardLinkUrl && (dashboardLinkUrl.dataset.fullUrl || dashboardLinkUrl.value);
@@ -1179,18 +1249,21 @@
 
     function toggleLinkFormFriendly() {
       var friendly = linkTypeFriendly && linkTypeFriendly.checked;
-      if (linkFormNormal) linkFormNormal.hidden = !!friendly;
-      if (linkFormFriendly) linkFormFriendly.hidden = !friendly;
+      var isSection = linkIsSection && linkIsSection.checked;
+      if (linkFormNormal) linkFormNormal.hidden = !!friendly || !!isSection;
+      if (linkFormFriendly) linkFormFriendly.hidden = !friendly || !!isSection;
+      if (linkFormSectionTitle) linkFormSectionTitle.hidden = !isSection;
     }
-    if (linkTypeFriendly) {
-      linkTypeFriendly.addEventListener("change", toggleLinkFormFriendly);
-    }
+    if (linkTypeFriendly) linkTypeFriendly.addEventListener("change", toggleLinkFormFriendly);
+    if (linkIsSection) linkIsSection.addEventListener("change", toggleLinkFormFriendly);
     addLinkBtn.addEventListener("click", () => {
       editingLinkId = null;
       linkTitle.value = "";
       linkUrl.value = "";
       linkHighlight.checked = false;
       if (linkTypeFriendly) linkTypeFriendly.checked = false;
+      if (linkIsSection) linkIsSection.checked = false;
+      if (linkSectionTitle) linkSectionTitle.value = "";
       if (linkImageUrl) linkImageUrl.value = "";
       if (linkFriendlyUrl) linkFriendlyUrl.value = "";
       if (linkIcon) linkIcon.value = "";
@@ -1203,8 +1276,14 @@
     });
     linkFormSave.addEventListener("click", () => {
       var friendly = linkTypeFriendly && linkTypeFriendly.checked;
+      var isSection = linkIsSection && linkIsSection.checked;
       var title, url, imageUrl, icon;
-      if (friendly) {
+      if (isSection) {
+        title = (linkSectionTitle && linkSectionTitle.value.trim()) || "Section";
+        url = "#";
+        imageUrl = undefined;
+        icon = "";
+      } else if (friendly) {
         imageUrl = (linkImageUrl && linkImageUrl.value.trim()) || "";
         url = (linkFriendlyUrl && linkFriendlyUrl.value.trim()) || "";
         if (!imageUrl || !url) {
@@ -1229,20 +1308,23 @@
         if (link) {
           link.title = title;
           link.url = url;
-          link.highlight = linkHighlight.checked;
+          link.highlight = isSection ? false : linkHighlight.checked;
           link.icon = icon;
           link.imageUrl = friendly ? imageUrl : undefined;
-          if (friendly) link.type = "image"; else delete link.type;
+          if (isSection) { link.type = "section"; link.section = title; }
+          else if (friendly) { link.type = "image"; link.section = undefined; }
+          else { delete link.type; delete link.section; }
         }
       } else {
         p.links.push({
           id: generateId(),
           title,
-          url,
-          highlight: linkHighlight.checked,
+          url: isSection ? "#" : url,
+          highlight: isSection ? false : linkHighlight.checked,
           icon: icon,
           imageUrl: friendly ? imageUrl : undefined,
-          type: friendly ? "image" : "link",
+          type: isSection ? "section" : (friendly ? "image" : "link"),
+          section: isSection ? title : undefined,
         });
       }
       saveProfile(p);
@@ -1263,6 +1345,7 @@
     });
     var layout = document.querySelector(".dashboard-layout");
     if (layout) layout.classList.toggle("preview-half", panelId === "panelTheme");
+    if (panelId === "panelLink") updateQrcodePanel();
   }
 
   function refreshPreview() {
@@ -1277,8 +1360,124 @@
     clearTimeout(liveRefreshPreviewTimer);
     liveRefreshPreviewTimer = setTimeout(refreshPreview, 450);
   }
+  try { window.__taplyLiveRefresh = liveRefreshPreview; } catch (e) {}
 
   window.addEventListener("hashchange", () => activateDashboardTab(window.location.hash));
+
+    function getProfileUrl() {
+      var p = getProfile();
+      var un = (p && p.username) || (dashboardUsername && dashboardUsername.value.trim()) || "";
+      var slug = (un || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
+      return window.location.origin + "/" + slug;
+    }
+
+    function updateQrcodePanel() {
+      var box = document.getElementById("qrcodeBox");
+      var placeholder = document.getElementById("qrcodePlaceholder");
+      var canvas = document.getElementById("qrcodeCanvas");
+      var img = document.getElementById("qrcodeImage");
+      var actions = document.getElementById("qrcodeActions");
+      var downloadBtn = document.getElementById("qrcodeDownload");
+      var copyBtn = document.getElementById("qrcodeCopy");
+      if (!box || !placeholder) return;
+      var url = getProfileUrl();
+      if (!url || url.indexOf("my-profile") >= 0) {
+        placeholder.hidden = false;
+        placeholder.innerHTML = "<p>Save your profile with a username to generate QR.</p>";
+        if (img) img.hidden = true;
+        if (canvas) canvas.hidden = true;
+        if (actions) actions.hidden = true;
+        return;
+      }
+      var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=" + encodeURIComponent(url);
+      if (img) {
+        img.src = qrUrl;
+        img.hidden = false;
+      }
+      if (placeholder) placeholder.hidden = true;
+      if (canvas) canvas.hidden = true;
+      if (actions) actions.hidden = false;
+      if (downloadBtn) {
+        downloadBtn.href = qrUrl;
+        downloadBtn.download = "taply-qr.png";
+        downloadBtn.onclick = function (e) {
+          e.preventDefault();
+          var a = document.createElement("a");
+          a.href = qrUrl;
+          a.download = "taply-qr.png";
+          a.click();
+        };
+      }
+      if (copyBtn) {
+        copyBtn.onclick = function () {
+          navigator.clipboard.writeText(url).then(function () { alert("Link copied!"); }).catch(function () {});
+        };
+      }
+    }
+
+    function renderSectionsPanel() {
+      var list = document.getElementById("sectionsList");
+      if (!list) return;
+      var p = getProfile();
+      var links = p && p.links || [];
+      var sections = links.filter(function (l) { return l.type === "section"; });
+      if (sections.length === 0) {
+        list.innerHTML = "<p class='muted'>No sections. Add a link and check „Section separator”.</p>";
+        return;
+      }
+      list.innerHTML = sections.map(function (s, i) {
+        return "<div class='section-list-item'><span class='section-list-icon'>📂</span><span>" + escapeHtml(s.title) + "</span></div>";
+      }).join("");
+    }
+
+    function renderShortenerPanel() {
+      var addWrap = document.getElementById("shortenerAdd");
+      var list = document.getElementById("shortenerList");
+      var slugInput = document.getElementById("shortenerSlug");
+      var targetInput = document.getElementById("shortenerTarget");
+      var addBtn = document.getElementById("shortenerAddBtn");
+      if (!list || !addBtn) return;
+      var p = getProfile();
+      p.shortLinks = p.shortLinks || {};
+      var baseUrl = window.location.origin + "/go/" + ((p.username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "user") + "/";
+      function refresh() {
+        var sl = p.shortLinks || {};
+        var keys = Object.keys(sl);
+        if (keys.length === 0) {
+          list.innerHTML = "<p class='muted'>No short links. Add below.</p>";
+        } else {
+          list.innerHTML = keys.map(function (k) {
+            var full = baseUrl + k;
+            var target = (sl[k] || "");
+            var targetDisplay = target.length > 45 ? target.substring(0, 45) + "…" : target;
+            return "<div class='shortener-item'><span class='shortener-slug'>/" + escapeHtml(k) + "</span> → <span class='shortener-target'>" + escapeHtml(targetDisplay) + "</span> <button type='button' class='ghost shortener-copy' data-url='" + escapeHtml(full) + "' title='Copy'>⎘</button> <button type='button' class='ghost shortener-remove' data-slug='" + escapeHtml(k) + "' title='Delete'>×</button></div>";
+          }).join("");
+          list.querySelectorAll(".shortener-copy").forEach(function (btn) {
+            btn.onclick = function () { navigator.clipboard.writeText(btn.dataset.url); };
+          });
+          list.querySelectorAll(".shortener-remove").forEach(function (btn) {
+            btn.onclick = function () {
+              delete p.shortLinks[btn.dataset.slug];
+              saveProfile(p);
+              renderShortenerPanel();
+            };
+          });
+        }
+      }
+      refresh();
+      if (addBtn && slugInput && targetInput) {
+        addBtn.onclick = function () {
+          var slug = (slugInput.value || "").toLowerCase().replace(/[^a-z0-9-_]/g, "");
+          var target = (targetInput.value || "").trim();
+          if (!slug || !target) { alert("Enter slug and URL."); return; }
+          p.shortLinks[slug] = target;
+          saveProfile(p);
+          slugInput.value = "";
+          targetInput.value = "";
+          refresh();
+        };
+      }
+    }
   }
 
   function renderLinkList() {
@@ -1289,12 +1488,17 @@
     const clicks = analytics.linkClicks || {};
     linkList.innerHTML = "";
     links.forEach((link, index) => {
+      const isSection = link.type === "section";
       const card = document.createElement("div");
-      card.className = "link-card";
+      card.className = "link-card" + (isSection ? " link-card-section" : "");
       card.dataset.linkId = link.id;
+      card.draggable = true;
+      card.dataset.index = String(index);
       const clickCount = clicks[link.id] || 0;
       var iconHtml = "";
-      if (link.type === "image" && link.imageUrl) {
+      if (isSection) {
+        iconHtml = '<div class="link-card-icon">📂</div>';
+      } else if (link.type === "image" && link.imageUrl) {
         iconHtml = '<div class="link-card-icon"><img src="' + escapeHtml(link.imageUrl) + '" alt="" onerror="this.parentElement.innerHTML=\'🖼\'" /></div>';
       } else {
         var logoUrl = link.icon && linkLogoUrl(link.icon);
@@ -1304,31 +1508,48 @@
           iconHtml = '<div class="link-card-icon">🔗</div>';
         }
       }
-      card.innerHTML = `
-        <div class="link-card-header">
-          ${iconHtml}
-          <button type="button" class="link-card-handle" aria-label="Reorder">⋮⋮</button>
-          <span class="link-card-title">${escapeHtml(link.title)}</span>
-        </div>
-        <input type="url" class="link-card-url" value="${escapeHtml(link.url)}" placeholder="https://..." />
-        <div class="link-card-actions">
-          <button type="button" class="link-card-star" title="Highlight">${link.highlight ? "★" : "☆"}</button>
-          <span class="link-card-clicks">${clickCount} clicks</span>
-          <button type="button" class="link-card-edit" title="Edit">✎</button>
-          <button type="button" class="btn-delete-card" title="Delete">🗑</button>
-        </div>
-      `;
+      if (isSection) {
+        card.innerHTML = `
+          <div class="link-card-header">
+            ${iconHtml}
+            <button type="button" class="link-card-handle" aria-label="Reorder">⋮⋮</button>
+            <span class="link-card-title">${escapeHtml(link.title)}</span>
+          </div>
+          <div class="link-card-actions">
+            <button type="button" class="link-card-edit" title="Edit">✎</button>
+            <button type="button" class="btn-delete-card" title="Delete">🗑</button>
+          </div>
+        `;
+      } else {
+        card.innerHTML = `
+          <div class="link-card-header">
+            ${iconHtml}
+            <button type="button" class="link-card-handle" aria-label="Reorder">⋮⋮</button>
+            <span class="link-card-title">${escapeHtml(link.title)}</span>
+          </div>
+          <input type="url" class="link-card-url" value="${escapeHtml(link.url)}" placeholder="https://..." />
+          <div class="link-card-actions">
+            <button type="button" class="link-card-star" title="Highlight">${link.highlight ? "★" : "☆"}</button>
+            <span class="link-card-clicks">${clickCount} clicks</span>
+            <button type="button" class="link-card-edit" title="Edit">✎</button>
+            <button type="button" class="btn-delete-card" title="Delete">🗑</button>
+          </div>
+        `;
+      }
       const urlInput = card.querySelector(".link-card-url");
-      urlInput.addEventListener("blur", () => {
-        const p = getProfile();
-        const l = (p.links || []).find((x) => x.id === link.id);
-        if (l && urlInput.value.trim()) {
-          l.url = urlInput.value.trim();
-          saveProfile(p);
-          liveRefreshPreview();
-        }
-      });
-      card.querySelector(".link-card-star").addEventListener("click", () => {
+      if (urlInput) {
+        urlInput.addEventListener("blur", () => {
+          const p = getProfile();
+          const l = (p.links || []).find((x) => x.id === link.id);
+          if (l && urlInput.value.trim()) {
+            l.url = urlInput.value.trim();
+            saveProfile(p);
+            liveRefreshPreview();
+          }
+        });
+      }
+      var starBtn = card.querySelector(".link-card-star");
+      if (starBtn) starBtn.addEventListener("click", () => {
         const p = getProfile();
         const l = (p.links || []).find((x) => x.id === link.id);
         if (l) {
@@ -1340,10 +1561,13 @@
       });
       card.querySelector(".link-card-edit").addEventListener("click", () => {
         editingLinkId = link.id;
-        var friendly = link.type === "image" || !!link.imageUrl;
+        var friendly = (link.type === "image" || !!link.imageUrl) && link.type !== "section";
+        var isSection = link.type === "section";
         if (linkTypeFriendly) linkTypeFriendly.checked = friendly;
-        if (linkTitle) linkTitle.value = link.title || "";
-        if (linkUrl) linkUrl.value = link.url || "";
+        if (linkIsSection) linkIsSection.checked = isSection;
+        if (linkTitle) linkTitle.value = isSection ? "" : (link.title || "");
+        if (linkUrl) linkUrl.value = isSection ? "" : (link.url || "");
+        if (linkSectionTitle) linkSectionTitle.value = isSection ? (link.title || link.section || "") : "";
         if (linkHighlight) linkHighlight.checked = !!link.highlight;
         if (linkIcon) linkIcon.value = link.icon || "";
         if (linkImageUrl) linkImageUrl.value = link.imageUrl || "";
@@ -1361,6 +1585,7 @@
       });
       linkList.appendChild(card);
     });
+    setupLinkDragDrop(linkList);
     if (linkList.classList.contains("link-list")) linkList.classList.remove("link-list");
     if (!linkList.classList.contains("link-cards")) linkList.classList.add("link-cards");
   }
@@ -1369,6 +1594,50 @@
     const div = document.createElement("div");
     div.textContent = s;
     return div.innerHTML;
+  }
+
+  function setupLinkDragDrop(container) {
+    if (!container) return;
+    var draggedId = null;
+    container.querySelectorAll(".link-card").forEach(function (card) {
+      card.addEventListener("dragstart", function (e) {
+        draggedId = card.dataset.linkId;
+        e.dataTransfer.setData("text/plain", draggedId);
+        e.dataTransfer.effectAllowed = "move";
+        card.classList.add("link-card-dragging");
+      });
+      card.addEventListener("dragend", function () {
+        card.classList.remove("link-card-dragging");
+        draggedId = null;
+      });
+      card.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (draggedId && card.dataset.linkId !== draggedId) {
+          card.classList.add("link-card-drag-over");
+        }
+      });
+      card.addEventListener("dragleave", function () {
+        card.classList.remove("link-card-drag-over");
+      });
+      card.addEventListener("drop", function (e) {
+        e.preventDefault();
+        card.classList.remove("link-card-drag-over");
+        var targetId = card.dataset.linkId;
+        if (!draggedId || draggedId === targetId) return;
+        var p = getProfile();
+        var links = p.links || [];
+        var fromIdx = links.findIndex(function (l) { return l.id === draggedId; });
+        var toIdx = links.findIndex(function (l) { return l.id === targetId; });
+        if (fromIdx < 0 || toIdx < 0) return;
+        var item = links.splice(fromIdx, 1)[0];
+        links.splice(toIdx, 0, item);
+        p.links = links;
+        saveProfile(p);
+        renderLinkList();
+        if (window.__taplyLiveRefresh) window.__taplyLiveRefresh();
+      });
+    });
   }
 
   function renderAnalytics() {
