@@ -17,14 +17,16 @@
     var host = (window.location && window.location.hostname) || "taply.ro";
     var proto = (window.location && window.location.protocol) || "https:";
     if (host === "localhost" || host === "127.0.0.1") return proto + "//" + host;
-    if (!host.startsWith("www.") && host.indexOf(".") !== -1) return proto + "//www." + host;
+    if (!host.startsWith("www.") && host.indexOf(".") !== -1) host = "www." + host;
     return proto + "//" + host;
   }
   function getCanonicalHost() {
     var host = (window.location && window.location.hostname) || "taply.ro";
     if (host === "localhost" || host === "127.0.0.1") return host;
-    if (!host.startsWith("www.") && host.indexOf(".") !== -1) return "www." + host;
-    return host;
+    return host.replace(/^www\./i, "");
+  }
+  function getDisplayHost() {
+    return getCanonicalHost().replace(/^www\./i, "");
   }
   function getToken() {
     try {
@@ -731,7 +733,7 @@
     const username = (currentUser && currentUser.username) || profile.username || "";
     var slugNorm = (username || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
     var profileFullUrl = getCanonicalOrigin() + "/" + slugNorm;
-    var profileDisplayUrl = getCanonicalHost() + "/" + slugNorm;
+    var profileDisplayUrl = getDisplayHost() + "/" + slugNorm;
     const profileLinkEl = document.getElementById("dashboardProfileLink");
     if (profileLinkEl) {
       profileLinkEl.href = username ? profileFullUrl : "#";
@@ -789,7 +791,7 @@
       var u = (currentUser && currentUser.username) || p.username || "";
       var s = (u || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
       var fullUrl = getCanonicalOrigin() + "/" + s;
-      var displayUrl = getCanonicalHost() + "/" + s;
+      var displayUrl = getDisplayHost() + "/" + s;
       if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
       if (previewFrame && u) previewFrame.src = fullUrl + (fullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
       if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
@@ -1162,7 +1164,7 @@
       const username = (dashboardUsername && dashboardUsername.value.trim()) || (currentUser && currentUser.username) || (p && p.username) || "my-profile";
       const slug = username.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
       const fullUrl = getCanonicalOrigin() + "/" + slug;
-      const displayUrl = getCanonicalHost() + "/" + slug;
+      const displayUrl = getDisplayHost() + "/" + slug;
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
       if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {

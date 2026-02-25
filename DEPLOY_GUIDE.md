@@ -48,9 +48,20 @@ La provider-ul de domeniu (GoDaddy, Namecheap, Cloudflare, etc.):
 - **Authorized JavaScript origins**: `https://taply.ro`, `https://www.taply.ro`
 - **Authorized redirect URIs**: adaugă `https://taply.ro` (Supabase gestionează callback-ul)
 
-### Pasul 5: (Opțional) Subdomenii (username.taply.ro)
+### Pasul 5: Subdomenii (slebb.com + username.slebb.com)
 
-Pentru linkuri de tip `username.taply.ro`: în Railway Variables adaugă `SUBDOMAIN_DOMAIN=taply.ro`; în DNS adaugă wildcard CNAME `*` → domeniul Railway. Redeploy.
+Dacă ai plan plătit Railway și poți adăuga mai multe domenii:
+
+1. **Railway** → proiectul Taply → **Settings** → **Networking** → **Custom Domain**
+2. Adaugă **www.slebb.com** (dacă nu e deja).
+3. Adaugă domeniul wildcard: **\*.slebb.com** (exact așa, cu asterisc). Railway îți va spune la ce CNAME să pointezi.
+4. **Variables** → adaugă **SUBDOMAIN_DOMAIN=slebb.com** (doar domeniul, fără www).
+5. **DNS (GoDaddy etc.)**:
+   - **CNAME** `www` → domeniul Railway (ex. `xxx.up.railway.app`)
+   - **CNAME** `*` (Name = asterisc) → același domeniu Railway
+6. Redeploy.
+
+Rezultat: **www.slebb.com** = site (login, dashboard); **username.slebb.com** = profil public. În dashboard linkul se afișează fără www (ex. slebb.com/bcataaa); copierea trimite la www.
 
 ---
 
