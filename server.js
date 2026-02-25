@@ -51,6 +51,7 @@ try {
 } catch (e) {
   console.warn("Could not write subdomain-config.js:", e.message);
 }
+const APP_PATHS = new Set(["/dashboard", "/login", "/register", "/landing", "/forgot-password", "/reset-password", "/confirm-email", "/confirm-email.html", "/privacy", "/help"]);
 app.use((req, res, next) => {
   const host = (req.hostname || "").toLowerCase();
   if (!host.endsWith("." + effectiveSubdomainDomain) || host === effectiveSubdomainDomain) return next();
@@ -59,6 +60,10 @@ app.use((req, res, next) => {
   const pathname = (req.path || "/").replace(/\/$/, "") || "/";
   if (pathname === "/" || pathname === "/profile" || pathname === "/profile.html") {
     return res.sendFile(path.join(__dirname, "profile.html"));
+  }
+  if (APP_PATHS.has(pathname)) {
+    const proto = req.get("x-forwarded-proto") || req.protocol || "https";
+    return res.redirect(302, proto + "://www." + effectiveSubdomainDomain + (req.originalUrl || req.url || ""));
   }
   next();
 });

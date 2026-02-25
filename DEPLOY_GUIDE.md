@@ -48,15 +48,18 @@ La provider-ul de domeniu (GoDaddy, Namecheap, Cloudflare, etc.):
 - **Authorized JavaScript origins**: `https://taply.ro`, `https://www.taply.ro`
 - **Authorized redirect URIs**: adaugă `https://taply.ro` (Supabase gestionează callback-ul)
 
-### Pasul 5: (Opțional) Subdomenii (username.taply.ro)
+### Pasul 5: (Opțional) Subdomenii – www + username.domeniu
 
-Pentru linkuri de tip `username.taply.ro`:
+Pentru ca **tot** să meargă cu **www** și **subdomeniile** (ex. username.slebb.com) să afișeze profilul:
 
-1. În Railway **Variables**, adaugă: `SUBDOMAIN_DOMAIN=taply.ro`
-2. În DNS, adaugă **wildcard CNAME**: `*` → `taply-production.up.railway.app`
-3. Redeploy
+1. **Custom domain** pe Railway: `www.slebb.com` (sau www.taply.ro).
+2. **Variables** pe Railway: `SUBDOMAIN_DOMAIN=slebb.com` (doar domeniul, fără www).
+3. **DNS** la GoDaddy (sau alt furnizor):
+   - **CNAME** `www` → `xxx.up.railway.app` (pentru www)
+   - **CNAME** `*` (wildcard) → `xxx.up.railway.app` (pentru *.slebb.com)
+4. Redeploy.
 
-Apoi profilurile vor fi accesibile și la `https://username.taply.ro`.
+Rezultat: **www.slebb.com** = site (login, dashboard, landing); **username.slebb.com** = profil public. Dacă intri pe un subdomeniu și dai pe Login/Dashboard, ești redirecționat la **www.slebb.com**.
 
 ---
 
