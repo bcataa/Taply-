@@ -26,7 +26,9 @@
     return host.replace(/^www\./i, "");
   }
   function getDisplayHost() {
-    return getCanonicalHost().replace(/^www\./i, "");
+    var h = (window.location && window.location.hostname) || "taply.ro";
+    if (h === "localhost" || h === "127.0.0.1") return h;
+    return h.replace(/^www\./i, "");
   }
   function getSubdomainDomain() {
     var env = window.SUBDOMAIN_DOMAIN;
@@ -810,11 +812,12 @@
       var mpOpen = document.getElementById("mobilePreviewOpen");
       if (mpUrl) { mpUrl.value = displayUrl; mpUrl.dataset.fullUrl = fullUrl; }
       if (mpOpen) mpOpen.href = u ? fullUrl : "#";
-      if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
+      var subdomainDomain = getSubdomainDomain();
+      if (profileSubdomainRow && dashboardLinkSubdomainUrl && subdomainDomain) {
         profileSubdomainRow.hidden = !u;
         if (u) {
-          var subFull = "https://" + s + "." + window.SUBDOMAIN_DOMAIN;
-          dashboardLinkSubdomainUrl.value = s + "." + window.SUBDOMAIN_DOMAIN;
+          var subFull = "https://" + s + "." + subdomainDomain;
+          dashboardLinkSubdomainUrl.value = s + "." + subdomainDomain;
           dashboardLinkSubdomainUrl.dataset.fullUrl = subFull;
         }
       }
