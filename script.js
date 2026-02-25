@@ -13,6 +13,20 @@
     return window.supabase.createClient(c.url, c.anonKey);
   }
 
+  function getCanonicalOrigin() {
+    var host = (window.location && window.location.hostname) || "taply.ro";
+    var proto = (window.location && window.location.protocol) || "https:";
+    if (host === "localhost" || host === "127.0.0.1") return proto + "//" + host;
+    if (!host.startsWith("www.") && host.indexOf(".") !== -1) host = "www." + host;
+    return proto + "//" + host;
+  }
+  function getCanonicalHost() {
+    var host = (window.location && window.location.hostname) || "taply.ro";
+    if (host === "localhost" || host === "127.0.0.1") return host;
+    if (!host.startsWith("www.") && host.indexOf(".") !== -1) host = "www." + host;
+    return host;
+  }
+
   function getToken() {
     try {
       return localStorage.getItem(TOKEN_KEY);
@@ -717,8 +731,8 @@
 
     const username = (currentUser && currentUser.username) || profile.username || "";
     var slugNorm = (username || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-    var profileFullUrl = window.location.origin + "/" + slugNorm;
-    var profileDisplayUrl = (window.location.hostname || "taply.ro") + "/" + slugNorm;
+    var profileFullUrl = getCanonicalOrigin() + "/" + slugNorm;
+    var profileDisplayUrl = getCanonicalHost() + "/" + slugNorm;
     const profileLinkEl = document.getElementById("dashboardProfileLink");
     if (profileLinkEl) {
       profileLinkEl.href = username ? profileFullUrl : "#";
@@ -775,8 +789,8 @@
       var p = getProfile();
       var u = (currentUser && currentUser.username) || p.username || "";
       var s = (u || "my-profile").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-      var fullUrl = window.location.origin + "/" + s;
-      var displayUrl = (window.location.hostname || "taply.ro") + "/" + s;
+      var fullUrl = getCanonicalOrigin() + "/" + s;
+      var displayUrl = getCanonicalHost() + "/" + s;
       if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
       if (previewFrame && u) previewFrame.src = fullUrl + (fullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
       if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
@@ -918,7 +932,7 @@
       var p = getProfile();
       var username = (p && p.username) || (currentUser && currentUser.username) || (dashboardUsername && dashboardUsername.value.trim()) || "my-profile";
       var slug = (username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-      return window.location.origin + "/" + slug;
+      return getCanonicalOrigin() + "/" + slug;
     }
     function refreshDesignModalPreview() {
       if (!customDesignPreviewFrame || !customDesignPreviewFrame.src) return;
@@ -1148,8 +1162,8 @@
       const p = getProfile();
       const username = (dashboardUsername && dashboardUsername.value.trim()) || (currentUser && currentUser.username) || (p && p.username) || "my-profile";
       const slug = username.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-      const fullUrl = window.location.origin + "/" + slug;
-      const displayUrl = (window.location.hostname || "taply.ro") + "/" + slug;
+      const fullUrl = getCanonicalOrigin() + "/" + slug;
+      const displayUrl = getCanonicalHost() + "/" + slug;
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
       if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
@@ -1390,7 +1404,7 @@
       var p = getProfile();
       var un = (p && p.username) || (dashboardUsername && dashboardUsername.value.trim()) || "";
       var slug = (un || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "my-profile";
-      return window.location.origin + "/" + slug;
+      return getCanonicalOrigin() + "/" + slug;
     }
 
     function updateQrcodePanel() {
@@ -1461,7 +1475,7 @@
       if (!list || !addBtn) return;
       var p = getProfile();
       p.shortLinks = p.shortLinks || {};
-      var baseUrl = window.location.origin + "/go/" + ((p.username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "user") + "/";
+      var baseUrl = getCanonicalOrigin() + "/go/" + ((p.username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "user") + "/";
       function refresh() {
         var sl = p.shortLinks || {};
         var keys = Object.keys(sl);
@@ -1691,7 +1705,7 @@
   }
 
   function initUsername() {
-    var base = (window.location.origin || "https://taply.ro").replace(/\/$/, "");
+    var base = (getCanonicalOrigin() || "https://taply.ro").replace(/\/$/, "");
     if (usernamePrefix) usernamePrefix.textContent = base + "/";
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get("email");
