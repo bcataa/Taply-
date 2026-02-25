@@ -21,6 +21,19 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 app.use(cors());
+
+// Redirect non-www → www (slebb.com → www.slebb.com); doar domeniul principal
+app.use((req, res, next) => {
+  const host = (req.hostname || "").toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1") return next();
+  const parts = host.split(".");
+  if (parts.length === 2 && !host.startsWith("www.")) {
+    const proto = req.get("x-forwarded-proto") || req.protocol || "https";
+    return res.redirect(301, proto + "://www." + host + (req.originalUrl || req.url || ""));
+  }
+  next();
+});
+
 // Limit mare pentru avatar + fundal custom (imagini base64 în JSON)
 const bodyLimit = "50mb";
 app.use(express.json({ limit: bodyLimit }));
