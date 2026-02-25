@@ -1,5 +1,79 @@
 # Deploy & Fix "Access supabase.co" in Google Login
 
+## 0. Conectează domeniul tău (ex. taply.ro)
+
+Dacă ai deja Taply pe Railway și ai obținut un domeniu:
+
+### Pasul 1: Adaugă domeniul în Railway
+
+1. Mergi pe [railway.app](https://railway.app) → proiectul Taply.
+2. **Settings** → **Networking** → **Custom Domain**.
+3. Adaugă domeniul: `taply.ro` (sau domeniul tău).
+4. Adaugă și `www.taply.ro` dacă vrei să funcționeze și cu www.
+5. Railway îți va arăta ce înregistrări DNS trebuie să adaugi.
+
+### Pasul 2: Configurează DNS-ul
+
+La provider-ul de domeniu (GoDaddy, Namecheap, Cloudflare, etc.):
+
+| Tip  | Name/Host | Value/Target |
+|------|-----------|--------------|
+| CNAME | `www` | `taply-production.up.railway.app` |
+| A     | `@` (sau root) | IP-ul indicat de Railway, sau folosește CNAME `@` → `taply-production.up.railway.app` dacă e posibil |
+
+> **Notă:** Unii provideri nu permit CNAME pe root (`@`). În acest caz, folosește un **ANAME/ALIAS** (dacă există) sau **A record** cu IP-ul Railway. Railway afișează exact ce ai nevoie în panoul Custom Domain.
+
+### Pasul 3: Actualizează Supabase (obligatoriu pentru link din email)
+
+În **Supabase** → **Authentication** → **URL Configuration**:
+
+- **Site URL**: pune exact noul tău domeniu/subdomeniu, ex. `https://taply.ro` sau `https://app.taply.ro` (link-ul din emailul de confirmare folosește această bază).
+- **Redirect URLs** – adaugă toate variantele pe care le folosești:
+  - `https://taply.ro/**`
+  - `https://taply.ro/confirm-email.html`
+  - `https://taply.ro/dashboard`
+  - `https://taply.ro/login`
+  - `https://taply.ro/register`
+  - Dacă ai schimbat subdomeniul (ex. app.taply.ro), adaugă și pentru el:
+    - `https://app.taply.ro/**`
+    - `https://app.taply.ro/confirm-email.html`
+  - `https://www.taply.ro/**` (dacă folosești www)
+
+**După ce schimbi subdomeniul:** actualizează **Site URL** la noul URL (ex. `https://app.taply.ro`) și adaugă în **Redirect URLs** noul domeniu + `/confirm-email.html`. Altfel link-ul din email duce încă la vechiul domeniu și poate să nu meargă.
+
+### Pasul 4: Google OAuth (dacă folosești login cu Google)
+
+În **Google Cloud Console** → **APIs & Services** → **Credentials** → OAuth client:
+
+- **Authorized JavaScript origins**: `https://taply.ro`, `https://www.taply.ro`
+- **Authorized redirect URIs**: adaugă `https://taply.ro` (Supabase gestionează callback-ul)
+
+### Pasul 5: (Opțional) Subdomenii (username.taply.ro)
+
+Pentru linkuri de tip `username.taply.ro`:
+
+1. În Railway **Variables**, adaugă: `SUBDOMAIN_DOMAIN=taply.ro`
+2. În DNS, adaugă **wildcard CNAME**: `*` → `taply-production.up.railway.app`
+3. Redeploy
+
+Apoi profilurile vor fi accesibile și la `https://username.taply.ro`.
+
+---
+
+## Link din emailul de confirmare nu merge (după schimbare subdomeniu)
+
+Dacă ai schimbat subdomeniul (ex. de la `taply.ro` la `app.taply.ro`) și link-ul din emailul „Confirm your email” nu mai deschide site-ul corect:
+
+1. **Supabase** → **Authentication** → **URL Configuration**
+2. **Site URL** – pune noul URL, ex. `https://app.taply.ro` (fără slash la final)
+3. **Redirect URLs** – adaugă:
+   - `https://app.taply.ro/**`
+   - `https://app.taply.ro/confirm-email.html`
+
+Salvează. Link-urile din emailurile noi vor folosi deja noul domeniu. (Emailurile deja trimise vor avea în continuare vechiul link – utilizatorii pot cere „Resend confirmation” sau să se înregistreze din nou.)
+
+---
+
 ## 1. Deploy to Railway (free tier)
 
 1. Push your code to **GitHub**.

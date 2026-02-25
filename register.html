@@ -61,6 +61,10 @@
             <span class="field-hint" style="color: rgba(255,255,255,0.6);">Your link: <span id="registerLinkPrefix">taply.ro</span>/<strong id="usernamePreview">your-username</strong></span>
           </label>
           <p class="login-error" id="registerError"></p>
+          <div class="register-verify-notice" id="registerVerifyNotice" hidden style="background: rgba(167, 139, 250, 0.2); border: 1px solid rgba(167, 139, 250, 0.5); border-radius: 12px; padding: 14px 16px; margin: 8px 0; font-size: 14px; color: rgba(255,255,255,0.95); line-height: 1.5;">
+            <strong>We sent you a verification email.</strong><br />
+            Check your inbox (and spam) and click the link to verify your account. Then <a href="/login" style="color: #a78bfa; text-decoration: underline;">sign in</a>.
+          </div>
           <p class="privacy-agree">By creating an account you agree to our <a href="privacy.html">Privacy Policy</a>.</p>
           <button type="submit" class="login-btn" id="registerBtn">Create account</button>
         </form>
@@ -155,6 +159,22 @@
         var regGoogleBtn = document.getElementById("registerGoogleBtn");
         if (regGoogleBtn) regGoogleBtn.addEventListener("click", function () { doSocialSignup("google"); });
 
+        var BLOCKED_EMAIL_DOMAINS = [
+          "test.com", "test.org", "test.net", "example.com", "example.org", "example.net",
+          "mailinator.com", "guerrillamail.com", "tempmail.com", "throwaway.email",
+          "fakeinbox.com", "10minutemail.com", "maildrop.cc", "yopmail.com",
+          "temp-mail.org", "trashmail.com", "dispostable.com", "getnada.com"
+        ];
+        function isBlockedEmail(email) {
+          if (!email || typeof email !== "string") return true;
+          var parts = email.trim().toLowerCase().split("@");
+          if (parts.length !== 2 || !parts[0] || !parts[1]) return true;
+          var domain = parts[1].replace(/^\[?\]?/, "").split(":")[0];
+          if (BLOCKED_EMAIL_DOMAINS.indexOf(domain) !== -1) return true;
+          if (/^(localhost|local|test|example|fake|temp|disposable|trash|dummy)\./i.test(domain)) return true;
+          return false;
+        }
+
         function registerErrorMsg(msg) {
           if (!msg) return "Sign-up error.";
           var m = msg.toLowerCase();
@@ -183,7 +203,15 @@
               if (errorEl) { errorEl.textContent = "Choose a username."; }
               return;
             }
+            if (isBlockedEmail(email)) {
+              var verifyNotice = document.getElementById("registerVerifyNotice");
+              if (verifyNotice) verifyNotice.hidden = true;
+              if (errorEl) errorEl.textContent = "Use a real email address (e.g. @gmail.com). Test addresses are not accepted.";
+              return;
+            }
             if (errorEl) errorEl.textContent = "";
+            var verifyNotice = document.getElementById("registerVerifyNotice");
+            if (verifyNotice) verifyNotice.hidden = true;
             if (btn) { btn.disabled = true; btn.textContent = "Creating…"; }
 
             if (useSupabase()) {
@@ -192,6 +220,7 @@
               supabase.auth.signUp({ email: email, password: password, options: { data: { username: username }, emailRedirectTo: confirmUrl } })
                 .then(function (result) {
                   if (result.error) {
+                    if (verifyNotice) verifyNotice.hidden = true;
                     var msg = (result.error.message || "").toLowerCase();
                     var code = (result.error.code || "").toLowerCase();
                     var isAlreadyRegistered = msg.indexOf("already registered") !== -1 || msg.indexOf("already in use") !== -1 || msg.indexOf("user already exists") !== -1 || code === "user_already_exists" || result.error.statusCode === 422;
@@ -207,7 +236,16 @@
                   }
                   var user = result.data.user;
                   if (!user) {
+                    if (verifyNotice) verifyNotice.hidden = true;
                     if (errorEl) errorEl.textContent = "Error creating account.";
+                    if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                    return;
+                  }
+                  var identities = user.identities;
+                  var isExistingUser = !identities || (Array.isArray(identities) && identities.length === 0);
+                  if (isExistingUser) {
+                    if (verifyNotice) verifyNotice.hidden = true;
+                    if (errorEl) errorEl.textContent = "This email is already in use. Sign in or reset your password.";
                     if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
                     return;
                   }
@@ -226,21 +264,52 @@
                   };
                   var profileRow = { id: user.id, username: username, profile: defaultProfile, analytics: { pageViews: 0, linkClicks: {} } };
                   function goToApp() { window.location.replace(window.location.origin + "/dashboard"); }
+                  function goToLoginWithVerify() {
+                    var loginUrl = window.location.origin + "/login?email=" + encodeURIComponent(email) + "&registered=1";
+                    window.location.replace(loginUrl);
+                  }
                   function showErr(msg) { if (errorEl) errorEl.textContent = msg; if (btn) { btn.disabled = false; btn.textContent = "Create account"; } }
                   supabase.from("profiles").upsert(profileRow, { onConflict: "id" }).then(function (upsertResult) {
                     if (upsertResult.error) {
                       var msg = (upsertResult.error.message || "").toLowerCase();
                       var code = String(upsertResult.error.code || "");
                       var isUsernameTaken = code === "23505" || msg.indexOf("unique") !== -1 || msg.indexOf("username") !== -1 || msg.indexOf("duplicate") !== -1;
-                      if (isUsernameTaken) { showErr("This username is already taken. Choose another."); return; }
+                      if (isUsernameTaken) {
+                        if (errorEl) errorEl.textContent = "";
+                        var notice = document.getElementById("registerVerifyNotice");
+                        if (notice) {
+                          var link = notice.querySelector("a[href='/login']");
+                          if (link) link.href = "/login?email=" + encodeURIComponent(email) + "&registered=1";
+                          notice.hidden = false;
+                          notice.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                        }
+                        if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                        return;
+                      }
                       var fallbackUsername = username + "_" + Math.random().toString(36).slice(2, 8);
-                      supabase.from("profiles").insert({ id: user.id, username: fallbackUsername, profile: defaultProfile, analytics: { pageViews: 0, linkClicks: {} } }).then(function (ins) {
-                        if (ins.error) { showErr("Could not save profile. Try another username or run supabase-profiles.sql in Supabase SQL Editor."); return; }
-                        goToApp();
-                      }).catch(function () { showErr("Connection error. Try again."); });
+                      var fallbackRow = { id: user.id, username: fallbackUsername, profile: defaultProfile, analytics: { pageViews: 0, linkClicks: {} } };
+                      supabase.from("profiles").upsert(fallbackRow, { onConflict: "id" }).then(function (res) {
+                        if (res.error) {
+                          if (errorEl) errorEl.textContent = "";
+                          var notice = document.getElementById("registerVerifyNotice");
+                          if (notice) {
+                            var link = notice.querySelector("a[href='/login']");
+                            if (link) link.href = "/login?email=" + encodeURIComponent(email) + "&registered=1";
+                            notice.hidden = false;
+                            notice.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                          }
+                          if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
+                          return;
+                        }
+                        if (user.email_confirmed_at) goToApp(); else goToLoginWithVerify();
+                      }).catch(function () {
+                        showErr("Connection error. Try again.");
+                        var notice = document.getElementById("registerVerifyNotice");
+                        if (notice) notice.hidden = true;
+                      });
                       return;
                     }
-                    goToApp();
+                    if (user.email_confirmed_at) goToApp(); else goToLoginWithVerify();
                   }).catch(function () { showErr("Connection error. Try again."); });
                 })
                 .catch(function () {

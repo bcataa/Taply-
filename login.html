@@ -39,6 +39,7 @@
           <span>or continue with email</span>
         </div>
 
+        <p class="login-verify-notice" id="loginVerifyNotice" hidden style="background: rgba(167, 139, 250, 0.15); border: 1px solid rgba(167, 139, 250, 0.4); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.5;">We sent you a verification email. <strong>Check your inbox (and spam)</strong> and click the link to verify your account. Then sign in below.</p>
         <form class="login-form" id="loginForm">
           <label class="login-field">
             <span>Email</span>
@@ -76,13 +77,17 @@
         var errorEl = document.getElementById("loginError");
         var btn = document.getElementById("loginBtn");
 
-        // Pre-fill email from ?email= in URL (landing page shortcut)
+        // Pre-fill email from ?email= in URL (landing page shortcut); show verify notice if ?registered=1
         try {
           var params = new URLSearchParams(window.location.search);
           var emailParam = params.get("email");
           if (emailParam && emailInput) {
             emailInput.value = emailParam;
             emailInput.focus();
+          }
+          if (params.get("registered") === "1") {
+            var notice = document.getElementById("loginVerifyNotice");
+            if (notice) notice.hidden = false;
           }
         } catch (e) {}
 

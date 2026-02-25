@@ -52,5 +52,6 @@ create trigger profiles_updated_at
 
 -- NU mai folosim trigger pe auth.users – cauza erorii "database error saving new account".
 -- Profilul se creează din aplicație (register.html face upsert după signUp).
--- Ștergem trigger-ul dacă există, ca signUp să nu mai dea eroare.
+-- Ștergem trigger-ul dacă există (Supabase îl poate crea automat):
 drop trigger if exists on_auth_user_created on auth.users;
+drop trigger if exists on_auth_user_created_append_profile on auth.users;
