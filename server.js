@@ -64,11 +64,6 @@ app.get("/help", (req, res) => res.sendFile(path.join(__dirname, "help.html")));
 app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "profile.html")));
 app.get("/index.html", (req, res) => res.redirect(302, "/dashboard"));
 
-// Favicon – rute explicite ca Opera/Chrome să nu primească 404 (resurse relative pe /login etc.)
-const FAVICON_SVG = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\" fill=\"none\"><rect width=\"32\" height=\"32\" rx=\"6\" fill=\"url(#g)\"/><text x=\"16\" y=\"22\" font-family=\"Georgia,serif\" font-size=\"18\" font-weight=\"700\" fill=\"white\" text-anchor=\"middle\">T</text><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"32\" y2=\"32\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#7c3aed\"/><stop offset=\"1\" stop-color=\"#a78bfa\"/></linearGradient></defs></svg>";
-app.get("/favicon.svg", (req, res) => { res.type("image/svg+xml").send(FAVICON_SVG); });
-app.get("/favicon.ico", (req, res) => { res.redirect(302, "/favicon.svg"); });
-
 // Short links: /go/:username/:slug → redirect la URL din profile.shortLinks
 app.get("/go/:username/:slug", (req, res, next) => {
   const username = (req.params.username || "").toLowerCase();
