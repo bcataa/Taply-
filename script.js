@@ -28,6 +28,15 @@
   function getDisplayHost() {
     return getCanonicalHost().replace(/^www\./i, "");
   }
+  function getSubdomainDomain() {
+    var env = window.SUBDOMAIN_DOMAIN;
+    if (env && env !== "localhost") return env;
+    var h = (window.location && window.location.hostname) || "";
+    if (h === "localhost" || h === "127.0.0.1") return "localhost";
+    if (h.indexOf(".") !== -1 && h.startsWith("www.")) return h.replace(/^www\./i, "");
+    if (h.indexOf(".") !== -1) return h;
+    return "";
+  }
   function getToken() {
     try {
       return localStorage.getItem(TOKEN_KEY);
@@ -1167,11 +1176,12 @@
       const displayUrl = getDisplayHost() + "/" + slug;
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
-      if (window.SUBDOMAIN_DOMAIN && profileSubdomainRow && dashboardLinkSubdomainUrl) {
+      var subdomainDomain = getSubdomainDomain();
+      if (profileSubdomainRow && dashboardLinkSubdomainUrl && subdomainDomain) {
         profileSubdomainRow.hidden = !slug || slug === "my-profile";
         if (slug && slug !== "my-profile") {
-          dashboardLinkSubdomainUrl.value = slug + "." + window.SUBDOMAIN_DOMAIN;
-          dashboardLinkSubdomainUrl.dataset.fullUrl = "https://" + slug + "." + window.SUBDOMAIN_DOMAIN;
+          dashboardLinkSubdomainUrl.value = slug + "." + subdomainDomain;
+          dashboardLinkSubdomainUrl.dataset.fullUrl = "https://" + slug + "." + subdomainDomain;
         }
       }
     }
