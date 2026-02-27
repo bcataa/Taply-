@@ -126,7 +126,11 @@
                 } else {
                   btn.disabled = false;
                   btn.textContent = "Upgrade to Premium";
-                  alert(result.data && result.data.error ? result.data.error : "Could not start checkout.");
+                  var msg = result.data && result.data.error ? result.data.error : "Could not start checkout.";
+                  if (msg.indexOf("not configured") !== -1) {
+                    msg = "Premium is temporarily unavailable. If you run this site, add Stripe keys in Railway → Variables (see STRIPE.md).";
+                  }
+                  alert(msg);
                 }
               })
               .catch(function () {
