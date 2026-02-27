@@ -38,6 +38,7 @@
         <p class="live-bio" id="liveBio"></p>
         <div class="live-social" id="liveSocial"></div>
         <div class="live-links" id="liveLinks"></div>
+        <footer class="live-powered" id="livePowered" hidden aria-hidden="true">Powered by <a href="/landing">Taply</a></footer>
       </div>
     </div>
     <script>
@@ -204,6 +205,8 @@
             });
             linksEl.appendChild(a);
           });
+          var poweredEl = document.getElementById("livePowered");
+          if (poweredEl) poweredEl.hidden = profile.branding === false;
         }
 
         function showEmpty() {

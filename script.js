@@ -64,6 +64,10 @@
     { id: "leather", name: "Leather", previewClass: "theme-leather" },
     { id: "purple", name: "Purple", previewClass: "theme-purple" },
   ];
+  const FREE_THEMES = ["midnight", "sunset", "grid"];
+  function isPremium() {
+    return currentUser && (currentUser.plan || "").toLowerCase() === "premium";
+  }
 
   const PLATFORMS = [
     "instagram",
@@ -334,17 +338,19 @@
     }
   }
 
-  function renderThemePreview(theme, isSelected) {
+  function renderThemePreview(theme, isSelected, isLocked) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "theme-card" + (isSelected ? " is-selected" : "");
+    card.className = "theme-card" + (isSelected ? " is-selected" : "") + (isLocked ? " theme-card-locked" : "");
     card.dataset.theme = theme.id;
+    card.dataset.locked = isLocked ? "1" : "0";
     card.innerHTML = `
       <div class="theme-preview ${theme.previewClass}">
         <div class="avatar"></div>
         <div class="line short"></div>
         <div class="chip-row"><span class="chip"></span><span class="chip"></span><span class="chip"></span></div>
         <div class="pill"></div><div class="pill"></div><div class="pill"></div>
+        ${isLocked ? '<span class="theme-card-lock" aria-hidden="true">🔒</span>' : ""}
       </div>
       <span>${theme.name}</span>
     `;
@@ -353,8 +359,9 @@
 
   function renderOnboardingThemes() {
     onboardingThemes.innerHTML = "";
-    THEMES.forEach((t) => {
-      const card = renderThemePreview(t, t.id === selectedTheme);
+    var themesToShow = THEMES.filter(function (t) { return FREE_THEMES.indexOf(t.id) !== -1; });
+    themesToShow.forEach((t) => {
+      const card = renderThemePreview(t, t.id === selectedTheme, false);
       card.addEventListener("click", () => {
         selectedTheme = t.id;
         onboardingThemes.querySelectorAll(".theme-card").forEach((c) => c.classList.remove("is-selected"));
@@ -369,13 +376,19 @@
     if (!profile) return;
     const theme = profile.theme || "midnight";
     const hasCustomBg = !!(profile.customBackgroundImage && profile.customBackgroundImage.trim());
+    const premium = isPremium();
     if (customDesignCardWrap && customDesignCardWrap.parentNode) customDesignCardWrap.parentNode.removeChild(customDesignCardWrap);
     if (!dashboardThemes) return;
     dashboardThemes.innerHTML = "";
     THEMES.forEach((t) => {
       const themeSelected = !hasCustomBg && t.id === theme;
-      const card = renderThemePreview(t, themeSelected);
+      const locked = false;
+      const card = renderThemePreview(t, themeSelected, locked);
       card.addEventListener("click", () => {
+        if (!premium && FREE_THEMES.indexOf(t.id) === -1) {
+          alert("Upgrade to Premium to unlock this theme.");
+          return;
+        }
         const p = getProfile();
         p.theme = t.id;
         p.customBackgroundImage = null;
@@ -387,6 +400,24 @@
     });
     if (customDesignCardWrap) dashboardThemes.appendChild(customDesignCardWrap);
     if (customDesignCard) {
+      if (!premium) {
+        customDesignCard.classList.add("theme-card-locked");
+        var lockEl = customDesignCard.querySelector(".theme-card-lock");
+        if (!lockEl) {
+          var preview = customDesignCard.querySelector(".theme-preview, .custom-design-card-preview");
+          if (preview) {
+            lockEl = document.createElement("span");
+            lockEl.className = "theme-card-lock";
+            lockEl.setAttribute("aria-hidden", "true");
+            lockEl.textContent = "\uD83D\uDD12";
+            preview.appendChild(lockEl);
+          }
+        }
+      } else {
+        customDesignCard.classList.remove("theme-card-locked");
+        var lockEl = customDesignCard.querySelector(".theme-card-lock");
+        if (lockEl) lockEl.remove();
+      }
       var preview = customDesignCard.querySelector(".custom-design-card-preview");
       if (preview) {
         if (hasCustomBg && profile.customBackgroundImage) {
@@ -820,10 +851,21 @@
           dashboardLinkSubdomainUrl.value = s + "." + subdomainDomain;
           dashboardLinkSubdomainUrl.dataset.fullUrl = subFull;
         }
+        var subWrap = document.getElementById("subdomainBlockWrap");
+        if (subWrap) {
+          subWrap.classList.toggle("link-domain-block-wrap--locked", !isPremium());
+        }
       }
       if (sidebarUsername) sidebarUsername.textContent = u || "—";
       if (dropdownUsername) dropdownUsername.textContent = u || "—";
       if (dropdownProfileLink) { dropdownProfileLink.href = fullUrl; dropdownProfileLink.textContent = u ? fullUrl : "—"; }
+      var pillText = isPremium() ? "Premium" : "Free";
+      var pillEl = document.getElementById("dropdownProPill");
+      if (pillEl) { pillEl.textContent = pillText; pillEl.classList.toggle("dropdown-pro-pill--premium", isPremium()); }
+      var sidebarPill = document.getElementById("sidebarPlanPill");
+      if (sidebarPill) { sidebarPill.textContent = pillText; sidebarPill.classList.toggle("sidebar-plan-pill--premium", isPremium()); }
+      var premiumLabel = document.getElementById("dropdownPremiumLabel");
+      if (premiumLabel) premiumLabel.textContent = isPremium() ? "Premium" : "Upgrade to Premium";
     };
     if (dropdownAvatarImg && profile.avatar) {
       dropdownAvatarImg.src = profile.avatar;
@@ -955,6 +997,10 @@
     }
     if (customDesignCard) {
       customDesignCard.addEventListener("click", function () {
+        if (!isPremium()) {
+          alert("Upgrade to Premium to add your own design.");
+          return;
+        }
         if (customDesignModal) {
           customDesignModal.hidden = false;
           document.body.style.overflow = "hidden";
@@ -1185,6 +1231,10 @@
         if (slug && slug !== "my-profile") {
           dashboardLinkSubdomainUrl.value = slug + "." + subdomainDomain;
           dashboardLinkSubdomainUrl.dataset.fullUrl = "https://" + slug + "." + subdomainDomain;
+        }
+        var subWrap = document.getElementById("subdomainBlockWrap");
+        if (subWrap) {
+          subWrap.classList.toggle("link-domain-block-wrap--locked", !isPremium());
         }
       }
     }
@@ -1430,6 +1480,7 @@
       var downloadBtn = document.getElementById("qrcodeDownload");
       var copyBtn = document.getElementById("qrcodeCopy");
       if (!box || !placeholder) return;
+      box.classList.toggle("qrcode-box--blurred", !isPremium());
       var url = getProfileUrl();
       if (!url || url.indexOf("my-profile") >= 0) {
         placeholder.hidden = false;
@@ -1446,7 +1497,7 @@
       }
       if (placeholder) placeholder.hidden = true;
       if (canvas) canvas.hidden = true;
-      if (actions) actions.hidden = false;
+      if (actions) actions.hidden = !isPremium();
       if (downloadBtn) {
         downloadBtn.href = qrUrl;
         downloadBtn.download = "taply-qr.png";
@@ -1699,17 +1750,28 @@
     analyticsClicks.innerHTML = "";
     if (links.length === 0) {
       analyticsClicks.innerHTML = "<p class='muted'>Add links to see clicks.</p>";
-      return;
+    } else {
+      const ul = document.createElement("ul");
+      ul.className = "analytics-link-list";
+      links.forEach((link) => {
+        const count = clicks[link.id] || 0;
+        const li = document.createElement("li");
+        li.innerHTML = `<span>${escapeHtml(link.title)}</span> <strong>${count}</strong> clicks`;
+        ul.appendChild(li);
+      });
+      analyticsClicks.appendChild(ul);
     }
-    const ul = document.createElement("ul");
-    ul.className = "analytics-link-list";
-    links.forEach((link) => {
-      const count = clicks[link.id] || 0;
-      const li = document.createElement("li");
-      li.innerHTML = `<span>${escapeHtml(link.title)}</span> <strong>${count}</strong> clicks`;
-      ul.appendChild(li);
-    });
-    analyticsClicks.appendChild(ul);
+    var wrap = document.getElementById("analyticsContentWrap");
+    var overlay = document.getElementById("analyticsPremiumOverlay");
+    if (wrap && overlay) {
+      if (isPremium()) {
+        wrap.classList.remove("analytics-content-wrap-blur");
+        overlay.hidden = true;
+      } else {
+        wrap.classList.add("analytics-content-wrap-blur");
+        overlay.hidden = false;
+      }
+    }
   }
 
   function suggestUsernameFromEmail(email) {
@@ -1777,30 +1839,37 @@
           if (hasAuthHash && window.history && window.history.replaceState) {
             try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
           }
-          supabase.from("profiles").select("username, profile, analytics").eq("id", session.user.id).single().then(function (result) {
+          function loadProfileWithPlan(includePlan) {
+            var cols = includePlan ? "username, profile, analytics, plan" : "username, profile, analytics";
+            supabase.from("profiles").select(cols).eq("id", session.user.id).single().then(function (result) {
           if (result.error || !result.data) {
+            if (includePlan && result.error && (result.error.message || "").toLowerCase().indexOf("plan") !== -1) {
+              loadProfileWithPlan(false);
+              return;
+            }
             var meta = session.user.user_metadata || {};
             var username = (meta.username || (session.user.email || "").split("@")[0] || "user").toString().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "user";
             var newProfile = defaultProfile();
             newProfile.displayName = meta.full_name || meta.name || meta.user_name || (session.user.email || "").split("@")[0] || "";
             if (meta.avatar_url) newProfile.avatar = meta.avatar_url;
+            var defaultAnal = defaultAnalytics();
             supabase.from("profiles").insert({
               id: session.user.id,
               username: username,
               profile: newProfile,
-              analytics: defaultAnalytics(),
+              analytics: defaultAnal,
             }).then(function (insertRes) {
               if (insertRes.error) {
                 var un = username + "_" + Math.random().toString(36).slice(2, 8);
                 supabase.from("profiles").insert({ id: session.user.id, username: un, profile: newProfile, analytics: defaultAnalytics() }).then(function (r2) {
                   if (r2.error) { window.location.href = "/login"; return; }
-                  currentUser = { id: session.user.id, email: session.user.email || "", username: un, profile: newProfile, analytics: defaultAnalytics() };
+                  currentUser = { id: session.user.id, email: session.user.email || "", username: un, profile: newProfile, analytics: defaultAnalytics(), plan: "free" };
                   showView("onboarding");
                   initOnboarding();
                 });
                 return;
               }
-              currentUser = { id: session.user.id, email: session.user.email || "", username: username, profile: newProfile, analytics: defaultAnalytics() };
+              currentUser = { id: session.user.id, email: session.user.email || "", username: username, profile: newProfile, analytics: defaultAnalytics(), plan: "free" };
               showView("onboarding");
               initOnboarding();
             });
@@ -1813,6 +1882,7 @@
             username: row.username || "",
             profile: row.profile || {},
             analytics: row.analytics || { pageViews: 0, linkClicks: {} },
+            plan: (row && row.plan ? row.plan : "free").toString().toLowerCase(),
           };
           var profile = currentUser.profile;
           var needsOnboarding = !profile.displayName && (!profile.links || profile.links.length === 0);
@@ -1823,13 +1893,15 @@
             showView("dashboard");
             initDashboard();
           }
-        }).catch(function (err) {
-          var msg = (err && err.message) ? String(err.message) : "";
-          if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {
-            alert("Connection failed. Check your internet and that the server is running (./start.sh), then reload.");
+            }).catch(function (err) {
+              var msg = (err && err.message) ? String(err.message) : "";
+              if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {
+                alert("Connection failed. Check your internet and that the server is running (./start.sh), then reload.");
+              }
+              window.location.href = "/login";
+            });
           }
-          window.location.href = "/login";
-        });
+          loadProfileWithPlan(true);
       }).catch(function (err) {
         var msg = (err && err.message) ? String(err.message) : "";
         if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {

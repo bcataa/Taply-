@@ -142,7 +142,13 @@
                     if (successEl) successEl.hidden = true;
                     return;
                   }
-                  window.location.replace(window.location.origin + "/dashboard");
+                  var redirect = (function () {
+                  var p = new URLSearchParams(window.location.search);
+                  var r = p.get("redirect");
+                  if (!r || r.indexOf("//") !== -1) return "/dashboard";
+                  return r.startsWith("/") ? r : "/" + r;
+                })();
+                window.location.replace(window.location.origin + redirect);
                 })
                 .catch(function () {
                   if (errorEl) errorEl.textContent = "Connection error. Check supabase-config.js (URL and anon key).";
@@ -181,7 +187,13 @@
         function doSocialLogin(provider) {
           if (!useSupabase()) return;
           if (errorEl) errorEl.textContent = "";
-          var redirectTo = window.location.origin + "/dashboard";
+          var redirectPath = (function () {
+            var p = new URLSearchParams(window.location.search);
+            var r = p.get("redirect");
+            if (!r || r.indexOf("//") !== -1) return "/dashboard";
+            return r.startsWith("/") ? r : "/" + r;
+          })();
+          var redirectTo = window.location.origin + redirectPath;
           var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
           supabase.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirectTo } }).then(function (r) {
             if (r.error) {

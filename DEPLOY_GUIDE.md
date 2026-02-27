@@ -54,14 +54,16 @@ Dacă ai plan plătit Railway și poți adăuga mai multe domenii:
 
 1. **Railway** → proiectul Taply → **Settings** → **Networking** → **Custom Domain**
 2. Adaugă **www.slebb.com** (dacă nu e deja).
-3. Adaugă domeniul wildcard: **\*.slebb.com** (exact așa, cu asterisc). Railway îți va spune la ce CNAME să pointezi.
-4. **Variables** → adaugă **SUBDOMAIN_DOMAIN=slebb.com** (doar domeniul, fără www).
+3. Adaugă domeniul wildcard: **\*.slebb.com** (fără backslash – doar `*` și `.slebb.com`). Railway îți va spune la ce CNAME să pointezi.
+4. **Variables** → adaugă **SUBDOMAIN_DOMAIN=slebb.com** (doar domeniul, fără www). **Fără această variabilă, bcataaa.slebb.com va afișa landing-ul în loc de profil.**
 5. **DNS (GoDaddy etc.)**:
    - **CNAME** `www` → domeniul Railway (ex. `xxx.up.railway.app`)
    - **CNAME** `*` (Name = asterisc) → același domeniu Railway
-6. Redeploy.
+6. **Redeploy** (obligatoriu după ce adaugi variabila).
 
 Rezultat: **www.slebb.com** = site (login, dashboard); **username.slebb.com** = profil public. În dashboard linkul se afișează fără www (ex. slebb.com/bcataaa); copierea trimite la www.
+
+**Dacă bcataaa.slebb.com arată landing-ul în loc de profil:** verifică că ai **SUBDOMAIN_DOMAIN=slebb.com** în **Variables** și ai făcut **Redeploy**.
 
 ---
 

@@ -124,7 +124,7 @@
                 </div>
                 <div class="sidebar-account-info">
                   <span class="sidebar-username" id="sidebarUsername">—</span>
-                  <span class="sidebar-plan-pill">Free</span>
+                  <a href="/premium" target="_blank" rel="noopener" class="sidebar-plan-pill" id="sidebarPlanPill" title="Plan">Free</a>
                 </div>
                 <span class="sidebar-account-arrow" aria-hidden="true">›</span>
               </button>
@@ -138,9 +138,10 @@
                   <strong class="dropdown-username" id="dropdownUsername">—</strong>
                   <a href="#" class="dropdown-profile-link" id="dropdownProfileLink" target="_blank" rel="noopener">taply.ro/...</a>
                 </div>
-                <span class="dropdown-pro-pill">Free</span>
+                <span class="dropdown-pro-pill" id="dropdownProPill">Free</span>
               </div>
               <div class="dropdown-divider"></div>
+              <a href="/premium" target="_blank" rel="noopener" class="dropdown-item dropdown-item-premium" id="dropdownPremiumLink" role="menuitem"><span class="dropdown-item-icon">★</span><span id="dropdownPremiumLabel">Upgrade to Premium</span></a>
               <a href="#profile" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">👤</span>Account</a>
               <a href="#link" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">🔗</span>Link & QR</a>
               <div class="dropdown-divider"></div>
@@ -283,13 +284,19 @@
             <section class="dashboard-panel" id="panelAnalytics">
               <h2>Insights</h2>
               <p class="subtitle">Views and clicks.</p>
-              <div class="analytics-cards">
-                <div class="analytics-card">
-                  <span class="analytics-value" id="statPageViews">0</span>
-                  <span class="analytics-label">Views</span>
+              <div class="analytics-content-wrap" id="analyticsContentWrap">
+                <div class="analytics-cards">
+                  <div class="analytics-card">
+                    <span class="analytics-value" id="statPageViews">0</span>
+                    <span class="analytics-label">Views</span>
+                  </div>
+                </div>
+                <div class="analytics-clicks" id="analyticsClicks"></div>
+                <div class="premium-overlay" id="analyticsPremiumOverlay" hidden>
+                  <span class="premium-overlay-icon">🔒</span>
+                  <p>Upgrade to Premium to see insights</p>
                 </div>
               </div>
-              <div class="analytics-clicks" id="analyticsClicks"></div>
             </section>
 
             <section class="dashboard-panel" id="panelLink">
@@ -306,14 +313,16 @@
                 </div>
                 <div class="profile-subdomain-row link-domain-block" id="profileSubdomainRow" hidden>
                   <span class="link-domain-label">Subdomain</span>
-                  <p class="link-domain-hint">username.taply.ro (when configured)</p>
-                  <div class="profile-link-row">
-                    <input type="text" id="dashboardLinkSubdomainUrl" class="profile-link-input" readonly />
-                    <button type="button" class="ghost" id="copySubdomainLinkBtn">Copy</button>
+                  <p class="link-domain-hint">username.slebb.com (Premium)</p>
+                  <div class="link-domain-block-wrap" id="subdomainBlockWrap">
+                    <div class="profile-link-row">
+                      <input type="text" id="dashboardLinkSubdomainUrl" class="profile-link-input" readonly />
+                      <button type="button" class="ghost" id="copySubdomainLinkBtn">Copy</button>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div class="link-qr-section">
+              <div class="link-qr-section" id="linkQrSection">
                 <span class="link-domain-label">QR code</span>
                 <p class="link-domain-hint">Download for business cards, posters.</p>
                 <div class="qrcode-box" id="qrcodeBox">

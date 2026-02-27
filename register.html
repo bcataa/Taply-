@@ -216,7 +216,8 @@
 
             if (useSupabase()) {
               var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
-              var confirmUrl = window.location.origin + (window.location.pathname.replace(/\/[^/]*$/, "") || "") + "/confirm-email.html";
+              var siteOrigin = (window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "");
+              var confirmUrl = siteOrigin + "/confirm-email.html";
               supabase.auth.signUp({ email: email, password: password, options: { data: { username: username }, emailRedirectTo: confirmUrl } })
                 .then(function (result) {
                   if (result.error) {
@@ -225,8 +226,8 @@
                     var code = (result.error.code || "").toLowerCase();
                     var isAlreadyRegistered = msg.indexOf("already registered") !== -1 || msg.indexOf("already in use") !== -1 || msg.indexOf("user already exists") !== -1 || code === "user_already_exists" || result.error.statusCode === 422;
                     if (isAlreadyRegistered) {
-                      var loginUrl = "/login?email=" + encodeURIComponent(email);
-                      window.location.replace(window.location.pathname.replace(/register\.html$/, "") + loginUrl);
+                      var baseOrigin = (window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "");
+                      window.location.replace(baseOrigin + "/login?email=" + encodeURIComponent(email));
                       return;
                     }
                     var isDbError = msg.indexOf("database") !== -1 || msg.indexOf("saving new") !== -1 || msg.indexOf("trigger") !== -1;
@@ -263,9 +264,10 @@
                     customBackgroundZoom: 100
                   };
                   var profileRow = { id: user.id, username: username, profile: defaultProfile, analytics: { pageViews: 0, linkClicks: {} } };
-                  function goToApp() { window.location.replace(window.location.origin + "/dashboard"); }
+                  var baseOrigin = (window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "");
+                  function goToApp() { window.location.replace(baseOrigin + "/dashboard"); }
                   function goToLoginWithVerify() {
-                    var loginUrl = window.location.origin + "/login?email=" + encodeURIComponent(email) + "&registered=1";
+                    var loginUrl = baseOrigin + "/login?email=" + encodeURIComponent(email) + "&registered=1";
                     window.location.replace(loginUrl);
                   }
                   function showErr(msg) { if (errorEl) errorEl.textContent = msg; if (btn) { btn.disabled = false; btn.textContent = "Create account"; } }
@@ -279,7 +281,7 @@
                         var notice = document.getElementById("registerVerifyNotice");
                         if (notice) {
                           var link = notice.querySelector("a[href='/login']");
-                          if (link) link.href = "/login?email=" + encodeURIComponent(email) + "&registered=1";
+                          if (link) link.href = (window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "") + "/login?email=" + encodeURIComponent(email) + "&registered=1";
                           notice.hidden = false;
                           notice.scrollIntoView({ behavior: "smooth", block: "nearest" });
                         }
@@ -294,7 +296,7 @@
                           var notice = document.getElementById("registerVerifyNotice");
                           if (notice) {
                             var link = notice.querySelector("a[href='/login']");
-                            if (link) link.href = "/login?email=" + encodeURIComponent(email) + "&registered=1";
+                            if (link) link.href = (window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "") + "/login?email=" + encodeURIComponent(email) + "&registered=1";
                             notice.hidden = false;
                             notice.scrollIntoView({ behavior: "smooth", block: "nearest" });
                           }
@@ -319,7 +321,7 @@
               return;
             }
 
-            var apiBase = window.location.origin;
+            var apiBase = (window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "");
             fetch(apiBase + "/api/register", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -331,13 +333,12 @@
                   if (result.data.token) {
                     try { localStorage.setItem("taply_token", result.data.token); } catch (err) {}
                   }
-                  window.location.replace(window.location.origin + "/dashboard");
+                  window.location.replace((window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "") + "/dashboard");
                 } else {
                   var errMsg = (result.data && result.data.error) ? result.data.error : "Sign-up error.";
                   var emailInUse = errMsg.toLowerCase().indexOf("already") !== -1 || errMsg.toLowerCase().indexOf("in use") !== -1;
                   if (emailInUse && email) {
-                    var loginUrl = "/login?email=" + encodeURIComponent(email);
-                    window.location.replace(window.location.pathname.replace(/register\.html$/, "") + loginUrl);
+                    window.location.replace((window.TAPLY_SITE_URL || window.location.origin).replace(/\/$/, "") + "/login?email=" + encodeURIComponent(email));
                     return;
                   }
                   if (errorEl) errorEl.textContent = errMsg;

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Premium – Taply</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+  </head>
+  <body class="login-page premium-page">
+    <div class="login-bg"></div>
+
+    <header class="login-header">
+      <a href="/landing" class="login-logo"><img src="/favicon.svg" alt="" class="login-logo-img" width="28" height="28" />Taply</a>
+      <a href="/dashboard" class="login-back">← Back to dashboard</a>
+    </header>
+
+    <main class="login-main premium-main">
+      <div class="premium-intro">
+        <div class="premium-intro-badge">Plans</div>
+        <h1 class="premium-intro-title">Choose your plan</h1>
+        <p class="premium-intro-sub">Start free. Upgrade when you need more.</p>
+      </div>
+
+      <div class="premium-cards">
+        <div class="premium-card premium-card--free">
+          <div class="premium-card-header">
+            <h2 class="premium-card-title">Free</h2>
+            <p class="premium-card-price"><span class="premium-price-amount">0</span> €<span class="premium-price-period">/month</span></p>
+          </div>
+          <ul class="premium-features">
+            <li><span class="premium-check">✓</span> 3 themes (Midnight, Sunset, Grid)</li>
+            <li><span class="premium-check">✓</span> Main link</li>
+            <li><span class="premium-check">✓</span> Unlimited links & social icons</li>
+            <li><span class="premium-muted">—</span> Insights</li>
+            <li><span class="premium-muted">—</span> Subdomain</li>
+            <li><span class="premium-muted">—</span> QR code</li>
+            <li><span class="premium-muted">—</span> Custom background</li>
+          </ul>
+          <a href="/dashboard" class="premium-cta premium-cta--secondary">Current plan</a>
+        </div>
+
+        <div class="premium-card premium-card--premium premium-card--highlight">
+          <div class="premium-card-badge">Recommended</div>
+          <div class="premium-card-header">
+            <h2 class="premium-card-title">Premium</h2>
+            <p class="premium-card-price"><span class="premium-price-amount">4</span> €<span class="premium-price-period">/month</span></p>
+            <p class="premium-card-sub">All features unlocked, including subdomain.</p>
+          </div>
+          <ul class="premium-features">
+            <li><span class="premium-check">✓</span> All themes + custom design</li>
+            <li><span class="premium-check">✓</span> Main link + subdomain (unlocked)</li>
+            <li><span class="premium-check">✓</span> Unlimited links & social icons</li>
+            <li><span class="premium-check">✓</span> Insights (views & clicks)</li>
+            <li><span class="premium-check">✓</span> QR code download</li>
+            <li><span class="premium-check">✓</span> Custom background image</li>
+            <li><span class="premium-check">✓</span> No Taply branding</li>
+          </ul>
+          <button type="button" class="premium-cta premium-cta--primary" id="premiumUpgradeBtn">Upgrade to Premium</button>
+          <p class="premium-cta-hint">Stripe · Cancel anytime</p>
+        </div>
+
+        <div class="premium-card premium-card--pro">
+          <div class="premium-card-badge premium-card-badge--pro">Pro</div>
+          <div class="premium-card-header">
+            <h2 class="premium-card-title">Pro</h2>
+            <p class="premium-card-price"><span class="premium-price-amount">9</span> €<span class="premium-price-period">/month</span></p>
+            <p class="premium-card-sub">Everything in Premium + custom domain.</p>
+          </div>
+          <ul class="premium-features">
+            <li><span class="premium-check">✓</span> Everything in Premium</li>
+            <li><span class="premium-check">✓</span> Custom domain (e.g. you.com)</li>
+            <li><span class="premium-check">✓</span> Setup & support included</li>
+          </ul>
+          <a href="mailto:contact@taply.ro?subject=Pro%20plan%20(9%20eur)%20inquiry" class="premium-cta premium-cta--pro" id="premiumProBtn">Contact us</a>
+          <p class="premium-cta-hint">We’ll set it up for you</p>
+        </div>
+      </div>
+
+      <p class="premium-footer-text">
+        <a href="/dashboard">Back to dashboard</a> · <a href="/help">Help</a>
+      </p>
+    </main>
+
+    <footer class="login-page-footer">
+      <p>© Taply · <a href="privacy.html">Privacy</a></p>
+    </footer>
+
+    <script>
+      (function () {
+        var btn = document.getElementById("premiumUpgradeBtn");
+        if (!btn) return;
+        function hasSupabase() {
+          return window.TaplySupabase && window.TaplySupabase.url && window.TaplySupabase.anonKey && window.supabase;
+        }
+        btn.addEventListener("click", function () {
+          if (!hasSupabase()) {
+            alert("Premium is available when using Supabase. Configure supabase-config.js.");
+            return;
+          }
+          var supabase = window.supabase.createClient(window.TaplySupabase.url, window.TaplySupabase.anonKey);
+          supabase.auth.getSession().then(function (r) {
+            var session = r.data && r.data.session;
+            if (!session || !session.access_token) {
+              window.location.href = "/login?redirect=" + encodeURIComponent("/premium");
+              return;
+            }
+            btn.disabled = true;
+            btn.textContent = "Redirecting…";
+            fetch("/api/create-checkout-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + session.access_token }
+            })
+              .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+              .then(function (result) {
+                if (result.ok && result.data && result.data.url) {
+                  window.location.href = result.data.url;
+                } else {
+                  btn.disabled = false;
+                  btn.textContent = "Upgrade to Premium";
+                  alert(result.data && result.data.error ? result.data.error : "Could not start checkout.");
+                }
+              })
+              .catch(function () {
+                btn.disabled = false;
+                btn.textContent = "Upgrade to Premium";
+                alert("Network error. Try again.");
+              });
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -6,9 +6,13 @@ create table if not exists public.profiles (
   username text unique not null,
   profile jsonb default '{}',
   analytics jsonb default '{"pageViews":0,"linkClicks":{}}',
+  plan text default 'free' check (plan in ('free', 'premium')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Dacă tabelul există deja, adaugă coloana plan
+alter table public.profiles add column if not exists plan text default 'free';
 
 -- Index pentru căutare după username (pagina publică)
 create index if not exists profiles_username_lower on public.profiles (lower(username));
