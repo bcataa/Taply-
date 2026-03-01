@@ -768,6 +768,10 @@
     onboardingFinish.addEventListener("click", finishOnboarding);
   }
 
+  function isValidPreviewUsername(u) {
+    return (u && String(u).trim() !== "" && String(u).toLowerCase() !== "my-profile");
+  }
+
   function initDashboard() {
     const profile = getProfile();
     if (!profile) return;
@@ -780,8 +784,17 @@
     if (profileLinkEl) {
       profileLinkEl.href = username ? profileFullUrl : "#";
     }
-    if (previewFrame && username) {
-      previewFrame.src = profileFullUrl + (profileFullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
+    var previewPlaceholder = document.getElementById("previewPlaceholder");
+    if (previewFrame) {
+      if (isValidPreviewUsername(username)) {
+        previewFrame.src = profileFullUrl + (profileFullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
+        previewFrame.style.display = "";
+        if (previewPlaceholder) previewPlaceholder.hidden = true;
+      } else {
+        previewFrame.removeAttribute("src");
+        previewFrame.style.display = "none";
+        if (previewPlaceholder) previewPlaceholder.hidden = false;
+      }
     }
     if (dashboardLinkUrlPreview) {
       dashboardLinkUrlPreview.value = profileDisplayUrl;
@@ -835,7 +848,18 @@
       var fullUrl = getCanonicalOrigin() + "/" + s;
       var displayUrl = getDisplayHost() + "/" + s;
       if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
-      if (previewFrame && u) previewFrame.src = fullUrl + (fullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
+      var ph = document.getElementById("previewPlaceholder");
+      if (previewFrame) {
+        if (isValidPreviewUsername(u)) {
+          previewFrame.src = fullUrl + (fullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
+          previewFrame.style.display = "";
+          if (ph) ph.hidden = true;
+        } else {
+          previewFrame.removeAttribute("src");
+          previewFrame.style.display = "none";
+          if (ph) ph.hidden = false;
+        }
+      }
       if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
