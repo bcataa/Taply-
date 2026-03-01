@@ -21,7 +21,6 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 const stripe = process.env.STRIPE_SECRET_KEY ? require("stripe")(process.env.STRIPE_SECRET_KEY) : null;
-const jwt = process.env.SUPABASE_JWT_SECRET ? require("jsonwebtoken") : null;
 
 app.use(cors());
 
@@ -363,18 +362,19 @@ app.post("/api/profile/:username/click", (req, res) => {
 });
 
 // ——— Stripe (Supabase + Stripe env) ———
+// Verificare token prin Supabase API (nu depinde de JWT Secret; merge și cu JWT Signing Keys noi)
 function supabaseJwtAuth(req, res, next) {
   const auth = req.headers.authorization || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
   if (!token) return res.status(401).json({ error: "Trebuie să fii autentificat." });
-  if (!jwt || !process.env.SUPABASE_JWT_SECRET) return res.status(503).json({ error: "Auth not configured." });
-  try {
-    const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET);
-    req.supabaseUser = { id: decoded.sub, email: decoded.email || "" };
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: "Sesiune invalidă. Loghează-te din nou." });
-  }
+  if (!supabaseAdmin) return res.status(503).json({ error: "Auth not configured." });
+  supabaseAdmin.auth.getUser(token)
+    .then(({ data: { user }, error }) => {
+      if (error || !user) return res.status(401).json({ error: "Sesiune invalidă. Loghează-te din nou." });
+      req.supabaseUser = { id: user.id, email: user.email || "" };
+      next();
+    })
+    .catch(() => res.status(401).json({ error: "Sesiune invalidă. Loghează-te din nou." }));
 }
 
 app.post("/api/create-checkout-session", (req, res) => {
