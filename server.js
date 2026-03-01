@@ -84,31 +84,31 @@ app.get("/index.html", (req, res) => res.redirect(302, "/dashboard"));
 
 // Short links: /go/:username/:slug → redirect la URL din profile.shortLinks
 app.get("/go/:username/:slug", (req, res, next) => {
-  const username = (req.params.username || "").toLowerCase();
+  const usernameParam = (req.params.username || "").trim();
   const slug = (req.params.slug || "").toLowerCase().replace(/[^a-z0-9-_]/g, "");
-  if (!username || !slug) return next();
+  if (!usernameParam || !slug) return next();
 
   function doRedirect(target) {
     if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
       return res.redirect(302, target);
     }
-    return res.redirect(302, "/profile?u=" + encodeURIComponent(username));
+    return res.redirect(302, "/profile?u=" + encodeURIComponent(usernameParam));
   }
 
   if (supabaseAdmin) {
-    supabaseAdmin.from("profiles").select("profile").eq("username", username).single()
+    supabaseAdmin.from("profiles").select("profile").ilike("username", usernameParam).single()
       .then((result) => {
-        if (result.error || !result.data) return res.redirect(302, "/profile?u=" + encodeURIComponent(username));
+        if (result.error || !result.data) return res.redirect(302, "/profile?u=" + encodeURIComponent(usernameParam));
         const shortLinks = (result.data.profile || {}).shortLinks || {};
         return doRedirect(shortLinks[slug]);
       })
-      .catch(() => res.redirect(302, "/profile?u=" + encodeURIComponent(username)));
+      .catch(() => res.redirect(302, "/profile?u=" + encodeURIComponent(usernameParam)));
     return;
   }
 
   const data = readUsers();
-  const user = data.users.find((u) => (u.username || "").toLowerCase() === username);
-  if (!user) return res.redirect(302, "/profile?u=" + encodeURIComponent(username));
+  const user = data.users.find((u) => (u.username || "").toLowerCase() === usernameParam.toLowerCase());
+  if (!user) return res.redirect(302, "/profile?u=" + encodeURIComponent(usernameParam));
   const shortLinks = (user.profile || {}).shortLinks || {};
   doRedirect(shortLinks[slug]);
 });
@@ -284,11 +284,13 @@ function profileToPublicJson(username, p, plan) {
 
 // GET /api/profile/:username - profil public (pentru link)
 app.get("/api/profile/:username", (req, res) => {
-  const username = (req.params.username || "").toLowerCase();
+  const usernameParam = (req.params.username || "").trim();
+  const usernameLower = usernameParam.toLowerCase();
   res.set("Cache-Control", "no-store");
 
   if (supabaseAdmin) {
-    supabaseAdmin.from("profiles").select("username, profile, plan").eq("username", username).single()
+    // Căutare case-insensitive (în DB username poate fi salvat cu capitalizare diferită)
+    supabaseAdmin.from("profiles").select("username, profile, plan").ilike("username", usernameParam).single()
       .then((result) => {
         if (result.error || !result.data) return res.status(404).json({ error: "Profile not found." });
         const row = result.data;
@@ -308,15 +310,15 @@ app.get("/api/profile/:username", (req, res) => {
 
 // POST /api/profile/:username/view - înregistrare vizualizare (opțional)
 app.post("/api/profile/:username/view", (req, res) => {
-  const username = (req.params.username || "").toLowerCase();
+  const usernameParam = (req.params.username || "").trim();
 
   if (supabaseAdmin) {
-    supabaseAdmin.from("profiles").select("analytics").eq("username", username).single()
+    supabaseAdmin.from("profiles").select("id, analytics").ilike("username", usernameParam).single()
       .then((result) => {
         if (result.error || !result.data) return res.status(404).json({ error: "Profile not found." });
         const analytics = result.data.analytics || { pageViews: 0, linkClicks: {} };
         analytics.pageViews = (analytics.pageViews || 0) + 1;
-        return supabaseAdmin.from("profiles").update({ analytics }).eq("username", username);
+        return supabaseAdmin.from("profiles").update({ analytics }).eq("id", result.data.id);
       })
       .then(() => res.json({ ok: true }))
       .catch(() => res.status(500).json({ error: "Server error." }));
@@ -324,7 +326,7 @@ app.post("/api/profile/:username/view", (req, res) => {
   }
 
   const data = readUsers();
-  const user = data.users.find((u) => (u.username || "").toLowerCase() === username);
+  const user = data.users.find((u) => (u.username || "").toLowerCase() === usernameParam.toLowerCase());
   if (!user) return res.status(404).json({ error: "Profile not found." });
   user.analytics = user.analytics || { pageViews: 0, linkClicks: {} };
   user.analytics.pageViews = (user.analytics.pageViews || 0) + 1;
@@ -335,16 +337,16 @@ app.post("/api/profile/:username/view", (req, res) => {
 // POST /api/profile/:username/click - înregistrare click pe link
 app.post("/api/profile/:username/click", (req, res) => {
   const { linkId } = req.body || {};
-  const username = (req.params.username || "").toLowerCase();
+  const usernameParam = (req.params.username || "").trim();
 
   if (supabaseAdmin) {
-    supabaseAdmin.from("profiles").select("analytics").eq("username", username).single()
+    supabaseAdmin.from("profiles").select("id, analytics").ilike("username", usernameParam).single()
       .then((result) => {
         if (result.error || !result.data) return res.status(404).json({ error: "Profile not found." });
         const analytics = result.data.analytics || { pageViews: 0, linkClicks: {} };
         analytics.linkClicks = analytics.linkClicks || {};
         analytics.linkClicks[linkId] = (analytics.linkClicks[linkId] || 0) + 1;
-        return supabaseAdmin.from("profiles").update({ analytics }).eq("username", username);
+        return supabaseAdmin.from("profiles").update({ analytics }).eq("id", result.data.id);
       })
       .then(() => res.json({ ok: true }))
       .catch(() => res.status(500).json({ error: "Server error." }));
@@ -352,7 +354,7 @@ app.post("/api/profile/:username/click", (req, res) => {
   }
 
   const data = readUsers();
-  const user = data.users.find((u) => (u.username || "").toLowerCase() === username);
+  const user = data.users.find((u) => (u.username || "").toLowerCase() === usernameParam.toLowerCase());
   if (!user) return res.status(404).json({ error: "Profile not found." });
   user.analytics = user.analytics || { pageViews: 0, linkClicks: {} };
   user.analytics.linkClicks = user.analytics.linkClicks || {};
