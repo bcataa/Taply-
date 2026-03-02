@@ -113,6 +113,11 @@ app.get("/go/:username/:slug", (req, res, next) => {
   doRedirect(shortLinks[slug]);
 });
 
+// API health – înainte de :username ca GET /api/health să nu fie confundat
+app.get("/api/health", (req, res) => {
+  res.json({ supabase: !!supabaseAdmin, stripe: !!stripe });
+});
+
 // Linkuri curate: /username → profile (înainte de static ca să nu fie servite ca fișiere)
 const RESERVED_PATHS = new Set([
   "api", "login", "register", "landing", "profile", "index", "privacy", "dashboard", "premium",
@@ -285,7 +290,6 @@ function profileToPublicJson(username, p, plan) {
 // GET /api/profile/:username - profil public (pentru link)
 app.get("/api/profile/:username", (req, res) => {
   const usernameParam = (req.params.username || "").trim();
-  const usernameLower = usernameParam.toLowerCase();
   res.set("Cache-Control", "no-store");
 
   if (supabaseAdmin) {
@@ -302,7 +306,7 @@ app.get("/api/profile/:username", (req, res) => {
   }
 
   const data = readUsers();
-  const user = data.users.find((u) => (u.username || "").toLowerCase() === username);
+  const user = data.users.find((u) => (u.username || "").toLowerCase() === usernameParam.toLowerCase());
   if (!user) return res.status(404).json({ error: "Profile not found." });
   const p = user.profile || {};
   res.json(profileToPublicJson(user.username, p, user.plan));
