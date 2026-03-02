@@ -294,14 +294,24 @@ app.get("/api/profile/:username", (req, res) => {
 
   if (supabaseAdmin) {
     // Căutare case-insensitive (în DB username poate fi salvat cu capitalizare diferită)
-    supabaseAdmin.from("profiles").select("username, profile, plan").ilike("username", usernameParam).single()
+    supabaseAdmin.from("profiles").select("username, profile, plan").ilike("username", usernameParam).maybeSingle()
       .then((result) => {
-        if (result.error || !result.data) return res.status(404).json({ error: "Profile not found." });
+        if (result.error) {
+          console.error("[profile] Supabase error for username=" + usernameParam + ":", result.error.message || result.error);
+          return res.status(500).json({ error: "Profile not found." });
+        }
+        if (!result.data) {
+          console.warn("[profile] No row for username=" + usernameParam);
+          return res.status(404).json({ error: "Profile not found." });
+        }
         const row = result.data;
         const p = row.profile || {};
         return res.json(profileToPublicJson(row.username, p, row.plan));
       })
-      .catch(() => res.status(500).json({ error: "Server error." }));
+      .catch((err) => {
+        console.error("[profile] Exception for username=" + usernameParam + ":", err && err.message);
+        return res.status(500).json({ error: "Server error." });
+      });
     return;
   }
 
