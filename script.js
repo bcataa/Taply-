@@ -187,6 +187,15 @@
     return profile;
   }
 
+  function updatePlanPillDisplay() {
+    var isPremium = (currentUser && (currentUser.plan || "").toLowerCase() === "premium");
+    var text = isPremium ? "Premium" : "Free";
+    var sidebarPill = document.getElementById("sidebarPlanPill");
+    var dropdownPill = document.getElementById("dropdownProPill");
+    if (sidebarPill) { sidebarPill.textContent = text; sidebarPill.classList.toggle("sidebar-plan-pill--premium", isPremium); }
+    if (dropdownPill) { dropdownPill.textContent = text; dropdownPill.classList.toggle("dropdown-pro-pill--premium", isPremium); }
+  }
+
   function saveProfile(profile) {
     if (currentUser) {
       currentUser.profile = profile;
@@ -324,6 +333,8 @@
   const linksStripSocial = document.getElementById("linksStripSocial");
 
   function showView(which) {
+    var viewLoading = document.getElementById("viewLoading");
+    if (viewLoading) viewLoading.hidden = true;
     viewUsername.hidden = which !== "username";
     viewOnboarding.hidden = which !== "onboarding";
     viewDashboard.hidden = which !== "dashboard";
@@ -797,6 +808,7 @@
       dropdownProfileLink.textContent = username ? profileFullUrl : "—";
       dropdownProfileLink.title = "Open profile";
     }
+    updatePlanPillDisplay();
     window.updateDashboardLinkDisplay = function () {
       var p = getProfile();
       var u = (currentUser && currentUser.username) || p.username || "";
@@ -1747,7 +1759,11 @@
 
   function init() {
     if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
-      window.location.href = "/login";
+      var app = document.getElementById("app");
+      if (app) {
+        app.innerHTML = "<div style=\"padding: 24px; max-width: 400px; margin: 40px auto; text-align: center; font-family: system-ui, sans-serif;\"><h2 style=\"margin: 0 0 12px;\">Deschide prin server</h2><p style=\"color: #666; margin: 0 0 16px;\">Rulează în terminal: <code style=\"background: #eee; padding: 4px 8px; border-radius: 4px;\">npm start</code> sau <code style=\"background: #eee; padding: 4px 8px; border-radius: 4px;\">./start.sh</code>, apoi deschide în browser: <strong>http://localhost:8001</strong></p><a href=\"#\" onclick=\"location.reload(); return false;\" style=\"color: var(--primary, #6366f1);\">Reîncarcă</a></div>";
+        app.style.display = "block";
+      }
       return;
     }
     var supabase = getSupabase();
@@ -1777,8 +1793,26 @@
           if (hasAuthHash && window.history && window.history.replaceState) {
             try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
           }
-          supabase.from("profiles").select("username, profile, analytics").eq("id", session.user.id).single().then(function (result) {
+          function setCurrentUserFromRow(row, planDefault) {
+            var plan = (row && row.plan ? row.plan : planDefault || "free").toString().toLowerCase();
+            currentUser = {
+              id: session.user.id,
+              email: session.user.email || "",
+              username: (row && row.username) || "",
+              profile: (row && row.profile) || {},
+              analytics: (row && row.analytics) ? row.analytics : { pageViews: 0, linkClicks: {} },
+              plan: plan,
+            };
+            updatePlanPillDisplay();
+          }
+          function loadProfileWithPlan(includePlan) {
+            var cols = includePlan ? "username, profile, analytics, plan" : "username, profile, analytics";
+            return supabase.from("profiles").select(cols).eq("id", session.user.id).single().then(function (result) {
           if (result.error || !result.data) {
+            if (includePlan && result.error && (result.error.message || "").toLowerCase().indexOf("plan") !== -1) {
+              loadProfileWithPlan(false);
+              return;
+            }
             var meta = session.user.user_metadata || {};
             var username = (meta.username || (session.user.email || "").split("@")[0] || "user").toString().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "user";
             var newProfile = defaultProfile();
@@ -1794,26 +1828,33 @@
                 var un = username + "_" + Math.random().toString(36).slice(2, 8);
                 supabase.from("profiles").insert({ id: session.user.id, username: un, profile: newProfile, analytics: defaultAnalytics() }).then(function (r2) {
                   if (r2.error) { window.location.href = "/login"; return; }
-                  currentUser = { id: session.user.id, email: session.user.email || "", username: un, profile: newProfile, analytics: defaultAnalytics() };
+                  setCurrentUserFromRow(null, "free");
+                  currentUser.username = un;
+                  currentUser.profile = newProfile;
+                  currentUser.analytics = defaultAnalytics();
                   showView("onboarding");
                   initOnboarding();
                 });
                 return;
               }
-              currentUser = { id: session.user.id, email: session.user.email || "", username: username, profile: newProfile, analytics: defaultAnalytics() };
+              setCurrentUserFromRow(null, "free");
+              currentUser.username = username;
+              currentUser.profile = newProfile;
+              currentUser.analytics = defaultAnalytics();
               showView("onboarding");
               initOnboarding();
             });
             return;
           }
           var row = result.data;
-          currentUser = {
-            id: session.user.id,
-            email: session.user.email || "",
-            username: row.username || "",
-            profile: row.profile || {},
-            analytics: row.analytics || { pageViews: 0, linkClicks: {} },
-          };
+          setCurrentUserFromRow(row, "free");
+          if (window.location.search && window.location.search.indexOf("premium=success") !== -1) {
+            currentUser.plan = "premium";
+            updatePlanPillDisplay();
+            if (window.history && window.history.replaceState) {
+              try { window.history.replaceState(null, "", window.location.pathname + (window.location.search.replace(/\?premium=success&?|&?premium=success/, "") || "?").replace(/\?$/, "") || window.location.search); } catch (e) {}
+            }
+          }
           var profile = currentUser.profile;
           var needsOnboarding = !profile.displayName && (!profile.links || profile.links.length === 0);
           if (needsOnboarding) {
@@ -1823,6 +1864,20 @@
             showView("dashboard");
             initDashboard();
           }
+            }).catch(function (err) {
+              if (err && includePlan && (err.message || "").toLowerCase().indexOf("plan") !== -1) {
+                return loadProfileWithPlan(false);
+              }
+              throw err;
+            });
+          }
+          loadProfileWithPlan(true).catch(function (err) {
+            var msg = (err && err.message) ? String(err.message) : "";
+            if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {
+              alert("Conexiune eșuată. Verifică internetul și că serverul rulează (npm start), apoi reîncarcă.");
+            }
+            window.location.href = "/login";
+          });
         }).catch(function (err) {
           var msg = (err && err.message) ? String(err.message) : "";
           if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {

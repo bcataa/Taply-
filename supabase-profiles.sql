@@ -55,3 +55,6 @@ create trigger profiles_updated_at
 -- Ștergem trigger-ul dacă există (Supabase îl poate crea automat):
 drop trigger if exists on_auth_user_created on auth.users;
 drop trigger if exists on_auth_user_created_append_profile on auth.users;
+
+-- Coloană pentru abonament Premium (Stripe webhook setează plan = 'premium' după plată)
+alter table public.profiles add column if not exists plan text default 'free';

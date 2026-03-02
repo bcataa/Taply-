@@ -18,6 +18,7 @@
   </head>
   <body>
     <main class="app" id="app">
+      <div class="view view-loading" id="viewLoading" style="display: flex; align-items: center; justify-content: center; min-height: 60vh; font-size: 16px; color: var(--muted, #666);">Se încarcă…</div>
       <!-- Step 1: Choose username -->
       <div class="view view-username" id="viewUsername" hidden>
         <a href="/login?register=1" class="username-back">← Back</a>
@@ -125,7 +126,7 @@
                 </div>
                 <div class="sidebar-account-info">
                   <span class="sidebar-username" id="sidebarUsername">—</span>
-                  <span class="sidebar-plan-pill">Free</span>
+                  <span class="sidebar-plan-pill" id="sidebarPlanPill">Free</span>
                 </div>
                 <span class="sidebar-account-arrow" aria-hidden="true">›</span>
               </button>
@@ -139,7 +140,7 @@
                   <strong class="dropdown-username" id="dropdownUsername">—</strong>
                   <a href="#" class="dropdown-profile-link" id="dropdownProfileLink" target="_blank" rel="noopener">taply.ro/...</a>
                 </div>
-                <span class="dropdown-pro-pill">Free</span>
+                <span class="dropdown-pro-pill" id="dropdownProPill">Free</span>
               </div>
               <div class="dropdown-divider"></div>
               <a href="#profile" class="dropdown-item" role="menuitem"><span class="dropdown-item-icon">👤</span>Account</a>

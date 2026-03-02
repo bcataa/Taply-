@@ -20,6 +20,8 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
   }
 }
 
+const stripe = process.env.STRIPE_SECRET_KEY ? require("stripe")(process.env.STRIPE_SECRET_KEY) : null;
+
 app.use(cors());
 
 // Redirect non-www → www (slebb.com → www.slebb.com); doar domeniul principal
@@ -36,6 +38,8 @@ app.use((req, res, next) => {
 
 // Limit mare pentru avatar + fundal custom (imagini base64 în JSON)
 const bodyLimit = "50mb";
+// Stripe webhook trebuie body raw (pentru semnătură)
+app.use("/api/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ limit: bodyLimit, extended: true }));
 
@@ -352,6 +356,70 @@ app.post("/api/profile/:username/click", (req, res) => {
   user.analytics.linkClicks[linkId] = (user.analytics.linkClicks[linkId] || 0) + 1;
   writeUsers(data);
   res.json({ ok: true });
+});
+
+// ——— Stripe Premium (Supabase + Stripe env) ———
+function supabaseJwtAuth(req, res, next) {
+  const auth = req.headers.authorization || "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return res.status(401).json({ error: "Trebuie să fii autentificat." });
+  if (!supabaseAdmin) return res.status(503).json({ error: "Auth not configured." });
+  supabaseAdmin.auth.getUser(token)
+    .then(({ data: { user }, error }) => {
+      if (error || !user) return res.status(401).json({ error: "Sesiune invalidă. Loghează-te din nou." });
+      req.supabaseUser = { id: user.id, email: user.email || "" };
+      next();
+    })
+    .catch(() => res.status(401).json({ error: "Sesiune invalidă. Loghează-te din nou." }));
+}
+
+app.post("/api/create-checkout-session", (req, res) => {
+  if (!supabaseAdmin || !stripe || !process.env.STRIPE_PRICE_ID_PREMIUM) {
+    return res.status(503).json({ error: "Payment is not configured." });
+  }
+  supabaseJwtAuth(req, res, async () => {
+    try {
+      const baseUrl = process.env.BASE_URL || (req.protocol + "://" + req.get("host"));
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: process.env.STRIPE_PRICE_ID_PREMIUM, quantity: 1 }],
+        success_url: baseUrl + "/dashboard?premium=success",
+        cancel_url: baseUrl + "/premium?canceled=1",
+        client_reference_id: req.supabaseUser.id,
+        customer_email: req.supabaseUser.email || undefined,
+      });
+      res.json({ url: session.url });
+    } catch (e) {
+      console.error("Stripe checkout error:", e);
+      res.status(500).json({ error: "Could not create checkout session." });
+    }
+  });
+});
+
+app.post("/api/stripe-webhook", (req, res) => {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret || !stripe) return res.status(400).send("Webhook not configured.");
+  const sig = req.headers["stripe-signature"];
+  if (!sig) return res.status(400).send("Missing stripe-signature.");
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, secret);
+  } catch (e) {
+    return res.status(400).send("Webhook signature verification failed.");
+  }
+  if (event.type !== "checkout.session.completed") return res.status(200).send("OK");
+  const session = event.data.object;
+  const userId = session.client_reference_id;
+  if (!userId || !supabaseAdmin) return res.status(200).send("OK");
+  supabaseAdmin
+    .from("profiles")
+    .update({ plan: "premium" })
+    .eq("id", userId)
+    .then(() => res.status(200).send("OK"))
+    .catch((err) => {
+      console.error("Webhook update plan error:", err);
+      res.status(500).send("Error");
+    });
 });
 
 function startServer(port) {
