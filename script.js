@@ -1803,14 +1803,11 @@
             };
             updatePlanPillDisplay();
           }
-          function loadProfileWithPlan(includePlan) {
-            var cols = includePlan ? "username, profile, analytics, plan" : "username, profile, analytics";
+          function loadProfileWithPlan() {
+            // Un singur request, fără plan – încarcă mai repede; plan = free, după plată ?premium=success îl setăm
+            var cols = "username, profile, analytics";
             return supabase.from("profiles").select(cols).eq("id", session.user.id).single().then(function (result) {
           if (result.error || !result.data) {
-            if (includePlan && result.error && (result.error.message || "").toLowerCase().indexOf("plan") !== -1) {
-              loadProfileWithPlan(false);
-              return;
-            }
             var meta = session.user.user_metadata || {};
             var username = (meta.username || (session.user.email || "").split("@")[0] || "user").toString().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "user";
             var newProfile = defaultProfile();
@@ -1863,13 +1860,10 @@
             initDashboard();
           }
             }).catch(function (err) {
-              if (err && includePlan && (err.message || "").toLowerCase().indexOf("plan") !== -1) {
-                return loadProfileWithPlan(false);
-              }
               throw err;
             });
           }
-          loadProfileWithPlan(true).catch(function (err) {
+          loadProfileWithPlan().catch(function (err) {
             var msg = (err && err.message) ? String(err.message) : "";
             if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {
               alert("Conexiune eșuată. Verifică internetul și că serverul rulează (npm start), apoi reîncarcă.");
@@ -1884,7 +1878,7 @@
           window.location.href = "/login";
         });
       }
-      if (hasAuthHash) setTimeout(runSupabaseInit, 350); else runSupabaseInit();
+      if (hasAuthHash) setTimeout(runSupabaseInit, 80); else runSupabaseInit();
       return;
     }
 
