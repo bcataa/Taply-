@@ -197,7 +197,12 @@
       var slug = (profile.username || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || (currentUser.username || "user");
       var supabase = getSupabase();
       if (supabase && currentUser.id) {
-        return supabase.from("profiles").update({ profile: profile, username: slug }).eq("id", currentUser.id).then(function (r) { if (r.error) throw new Error(r.error.message); return r; }).catch(function () {});
+        // Upsert ca să existe mereu rândul în `profiles` (altfel preview-ul public poate da 404)
+        var analytics = currentUser.analytics || defaultAnalytics();
+        return supabase
+          .from("profiles")
+          .upsert({ id: currentUser.id, username: slug, profile: profile, analytics: analytics }, { onConflict: "id" })
+          .then(function (r) { if (r.error) throw new Error(r.error.message); return r; });
       }
       const token = getToken();
       if (token) {
