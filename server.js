@@ -74,6 +74,7 @@ app.get("/confirm-email", (req, res) => res.sendFile(path.join(__dirname, "confi
 app.get("/confirm-email.html", (req, res) => res.sendFile(path.join(__dirname, "confirm-email.html")));
 app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "privacy.html")));
 app.get("/help", (req, res) => res.sendFile(path.join(__dirname, "help.html")));
+app.get("/premium", (req, res) => res.sendFile(path.join(__dirname, "premium.html")));
 app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "profile.html")));
 app.get("/index.html", (req, res) => res.redirect(302, "/dashboard"));
 
