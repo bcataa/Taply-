@@ -65,8 +65,12 @@
     { id: "purple", name: "Purple", previewClass: "theme-purple" },
   ];
   const FREE_THEMES = ["midnight", "sunset", "grid"];
+  const TEST_PREMIUM_KEY = "taply_test_premium"; // triple-click pe Free → Premium pentru test
   function isPremium() {
-    return currentUser && (currentUser.plan || "").toLowerCase() === "premium";
+    if (!currentUser) return false;
+    if ((currentUser.plan || "").toLowerCase() === "premium") return true;
+    try { if (sessionStorage.getItem(TEST_PREMIUM_KEY) === "1") return true; } catch (e) {}
+    return false;
   }
 
   const PLATFORMS = [
@@ -896,6 +900,36 @@
       var premiumLabel = document.getElementById("dropdownPremiumLabel");
       if (premiumLabel) premiumLabel.textContent = isPremium() ? "Premium" : "Upgrade to Premium";
     };
+    function setupTestPremiumTripleClick() {
+      var clickCount = 0, clickTimer = null, singleClickTimer = null;
+      function onPlanClick(e) {
+        if ((currentUser.plan || "").toLowerCase() === "premium") return;
+        e.preventDefault();
+        clickCount++;
+        if (singleClickTimer) clearTimeout(singleClickTimer);
+        if (clickTimer) clearTimeout(clickTimer);
+        clickTimer = setTimeout(function () { clickCount = 0; clickTimer = null; }, 1500);
+        if (clickCount >= 3) {
+          e.stopPropagation();
+          clickCount = 0;
+          try { sessionStorage.setItem(TEST_PREMIUM_KEY, "1"); } catch (err) {}
+          if (currentUser) currentUser.plan = "premium";
+          if (typeof window.updateDashboardLinkDisplay === "function") window.updateDashboardLinkDisplay();
+          if (window.__taplyLiveRefresh) window.__taplyLiveRefresh();
+          alert("Test Premium activat. Toate funcțiile Premium sunt deblocate în această sesiune.");
+          return;
+        }
+        singleClickTimer = setTimeout(function () {
+          if (clickCount === 1) window.open("/premium", "_blank");
+          singleClickTimer = null;
+        }, 400);
+      }
+      var sidebarPill = document.getElementById("sidebarPlanPill");
+      var dropdownPill = document.getElementById("dropdownProPill");
+      if (sidebarPill) { sidebarPill.addEventListener("click", onPlanClick); }
+      if (dropdownPill) { dropdownPill.addEventListener("click", onPlanClick); }
+    }
+    setupTestPremiumTripleClick();
     if (dropdownAvatarImg && profile.avatar) {
       dropdownAvatarImg.src = profile.avatar;
       dropdownAvatarImg.hidden = false;
