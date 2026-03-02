@@ -333,8 +333,6 @@
   const linksStripSocial = document.getElementById("linksStripSocial");
 
   function showView(which) {
-    var viewLoading = document.getElementById("viewLoading");
-    if (viewLoading) viewLoading.hidden = true;
     viewUsername.hidden = which !== "username";
     viewOnboarding.hidden = which !== "onboarding";
     viewDashboard.hidden = which !== "dashboard";
@@ -1885,13 +1883,6 @@
           }
           window.location.href = "/login";
         });
-      }).catch(function (err) {
-        var msg = (err && err.message) ? String(err.message) : "";
-        if (msg.indexOf("fetch") !== -1 || msg.indexOf("Network") !== -1) {
-          alert("Connection failed. Check your internet and that the server is running (./start.sh), then reload.");
-        }
-        window.location.href = "/login";
-      });
       }
       if (hasAuthHash) setTimeout(runSupabaseInit, 350); else runSupabaseInit();
       return;
