@@ -6,6 +6,13 @@
 
   let currentUser = null;
 
+  const TEST_PREMIUM_KEY = "taply_test_premium";
+
+  function isPremium() {
+    try { if (sessionStorage.getItem(TEST_PREMIUM_KEY)) return true; } catch (e) {}
+    return (currentUser && (currentUser.plan || "").toLowerCase() === "premium");
+  }
+
   function getSupabase() {
     if (typeof window === "undefined") return null;
     var c = window.TaplySupabase;
@@ -188,12 +195,80 @@
   }
 
   function updatePlanPillDisplay() {
-    var isPremium = (currentUser && (currentUser.plan || "").toLowerCase() === "premium");
-    var text = isPremium ? "Premium" : "Free";
+    var premium = isPremium();
+    var text = premium ? "Premium" : "Free";
     var sidebarPill = document.getElementById("sidebarPlanPill");
     var dropdownPill = document.getElementById("dropdownProPill");
-    if (sidebarPill) { sidebarPill.textContent = text; sidebarPill.classList.toggle("sidebar-plan-pill--premium", isPremium); }
-    if (dropdownPill) { dropdownPill.textContent = text; dropdownPill.classList.toggle("dropdown-pro-pill--premium", isPremium); }
+    if (sidebarPill) { sidebarPill.textContent = text; sidebarPill.classList.toggle("sidebar-plan-pill--premium", premium); }
+    if (dropdownPill) { dropdownPill.textContent = text; dropdownPill.classList.toggle("dropdown-pro-pill--premium", premium); }
+  }
+
+  function setupTestPremiumTripleClick() {
+    var lastClick = 0;
+    var count = 0;
+    function handlePillClick() {
+      if (isPremium()) return;
+      var now = Date.now();
+      if (now - lastClick > 400) count = 0;
+      lastClick = now;
+      count++;
+      if (count >= 3) {
+        count = 0;
+        try { sessionStorage.setItem(TEST_PREMIUM_KEY, "1"); } catch (e) {}
+        if (currentUser) currentUser.plan = "premium";
+        updatePlanPillDisplay();
+        applyPremiumRestrictions();
+        alert("Test Premium activat. Toate funcțiile Premium sunt deblocate în această sesiune.");
+      }
+    }
+    var sidebarPill = document.getElementById("sidebarPlanPill");
+    var dropdownPill = document.getElementById("dropdownProPill");
+    if (sidebarPill) sidebarPill.addEventListener("click", handlePillClick);
+    if (dropdownPill) dropdownPill.addEventListener("click", handlePillClick);
+  }
+
+  function applyPremiumRestrictions() {
+    var premium = isPremium();
+    var subRow = document.getElementById("profileSubdomainRow");
+    if (subRow && !premium) subRow.hidden = true;
+    var analyticsPanel = document.getElementById("panelAnalytics");
+    if (analyticsPanel) {
+      var overlay = document.getElementById("analyticsPremiumOverlay");
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = "analyticsPremiumOverlay";
+        overlay.className = "premium-overlay";
+        overlay.innerHTML = "<p>Insights – Premium</p><a href=\"/premium\">Upgrade</a>";
+        overlay.style.cssText = "position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;";
+        analyticsPanel.style.position = "relative";
+        analyticsPanel.appendChild(overlay);
+      }
+      overlay.hidden = premium;
+    }
+    var qrActions = document.getElementById("qrcodeActions");
+    var qrcodeBox = document.getElementById("qrcodeBox");
+    if (qrcodeBox) {
+      var qrOverlay = qrcodeBox.querySelector(".qrcode-premium-overlay");
+      if (!qrOverlay) {
+        qrOverlay = document.createElement("div");
+        qrOverlay.className = "qrcode-premium-overlay";
+        qrOverlay.innerHTML = "<p>QR download – Premium</p><a href=\"/premium\">Upgrade</a>";
+        qrcodeBox.style.position = "relative";
+        qrcodeBox.appendChild(qrOverlay);
+      }
+      qrOverlay.hidden = premium;
+      if (qrActions) qrActions.hidden = !premium || qrActions.hidden;
+    }
+    var customCard = document.getElementById("customDesignCard");
+    if (customCard) {
+      customCard.dataset.premiumLock = premium ? "" : "1";
+      if (!premium) customCard.classList.add("custom-design-card--locked"); else customCard.classList.remove("custom-design-card--locked");
+    }
+    var linkForm = document.getElementById("linkForm");
+    if (linkForm) {
+      linkForm.classList.toggle("link-form-card--premium-locked", !premium);
+    }
+    renderDashboardThemes();
   }
 
   function saveProfile(profile) {
@@ -381,7 +456,8 @@
     if (customDesignCardWrap && customDesignCardWrap.parentNode) customDesignCardWrap.parentNode.removeChild(customDesignCardWrap);
     if (!dashboardThemes) return;
     dashboardThemes.innerHTML = "";
-    THEMES.forEach((t) => {
+    var themesToShow = isPremium() ? THEMES : THEMES.slice(0, 3);
+    themesToShow.forEach((t) => {
       const themeSelected = !hasCustomBg && t.id === theme;
       const card = renderThemePreview(t, themeSelected);
       card.addEventListener("click", () => {
@@ -412,6 +488,8 @@
       }
       if (hasCustomBg) customDesignCard.classList.add("is-selected");
       else customDesignCard.classList.remove("is-selected");
+      customDesignCard.dataset.premiumLock = isPremium() ? "" : "1";
+      customDesignCard.classList.toggle("custom-design-card--locked", !isPremium());
     }
     updateCustomDesignUI(getProfile());
   }
@@ -807,6 +885,8 @@
       dropdownProfileLink.title = "Open profile";
     }
     updatePlanPillDisplay();
+    setupTestPremiumTripleClick();
+    applyPremiumRestrictions();
     window.updateDashboardLinkDisplay = function () {
       var p = getProfile();
       var u = (currentUser && currentUser.username) || p.username || "";
@@ -824,7 +904,7 @@
       if (mpOpen) mpOpen.href = u ? fullUrl : "#";
       var subdomainDomain = getSubdomainDomain();
       if (profileSubdomainRow && dashboardLinkSubdomainUrl && subdomainDomain) {
-        profileSubdomainRow.hidden = !u;
+        profileSubdomainRow.hidden = !isPremium() || !u;
         if (u) {
           var subFull = "https://" + s + "." + subdomainDomain;
           dashboardLinkSubdomainUrl.value = s + "." + subdomainDomain;
@@ -965,6 +1045,10 @@
     }
     if (customDesignCard) {
       customDesignCard.addEventListener("click", function () {
+        if (customDesignCard.dataset.premiumLock === "1") {
+          alert("Upgrade to Premium to add your own design.");
+          return;
+        }
         if (customDesignModal) {
           customDesignModal.hidden = false;
           document.body.style.overflow = "hidden";
@@ -1314,8 +1398,15 @@
       if (linkFormFriendly) linkFormFriendly.hidden = !friendly || !!isSection;
       if (linkFormSectionTitle) linkFormSectionTitle.hidden = !isSection;
     }
-    if (linkTypeFriendly) linkTypeFriendly.addEventListener("change", toggleLinkFormFriendly);
-    if (linkIsSection) linkIsSection.addEventListener("change", toggleLinkFormFriendly);
+    function enforcePremiumLinkOptions() {
+      if (isPremium()) return;
+      if (linkTypeFriendly && linkTypeFriendly.checked) { linkTypeFriendly.checked = false; alert("Upgrade to Premium for clickable image."); return; }
+      if (linkHighlight && linkHighlight.checked) { linkHighlight.checked = false; alert("Upgrade to Premium for highlight."); return; }
+      if (linkIsSection && linkIsSection.checked) { linkIsSection.checked = false; alert("Upgrade to Premium for section separator."); return; }
+    }
+    if (linkTypeFriendly) linkTypeFriendly.addEventListener("change", function () { enforcePremiumLinkOptions(); toggleLinkFormFriendly(); });
+    if (linkIsSection) linkIsSection.addEventListener("change", function () { enforcePremiumLinkOptions(); toggleLinkFormFriendly(); });
+    if (linkHighlight) linkHighlight.addEventListener("change", enforcePremiumLinkOptions);
     addLinkBtn.addEventListener("click", () => {
       editingLinkId = null;
       linkTitle.value = "";
@@ -1843,6 +1934,7 @@
           }
           var row = result.data;
           setCurrentUserFromRow(row, "free");
+          try { if (sessionStorage.getItem(TEST_PREMIUM_KEY)) { currentUser.plan = "premium"; updatePlanPillDisplay(); } } catch (e) {}
           if (window.location.search && window.location.search.indexOf("premium=success") !== -1) {
             currentUser.plan = "premium";
             updatePlanPillDisplay();

@@ -45,7 +45,7 @@
             <li><span class="premium-muted">—</span> QR code download</li>
             <li><span class="premium-muted">—</span> Custom background image</li>
           </ul>
-          <a href="/dashboard" class="premium-cta premium-cta--secondary">Current plan</a>
+          <a href="/dashboard" class="premium-cta premium-cta--secondary" id="currentPlanBtn">Current plan</a>
         </div>
 
         <div class="premium-card premium-card--premium premium-card--highlight">
@@ -140,6 +140,23 @@
                 alert("Network error. Try again.");
               });
           });
+        });
+      })();
+      (function () {
+        var currentPlanBtn = document.getElementById("currentPlanBtn");
+        if (!currentPlanBtn) return;
+        var lastClick = 0, count = 0;
+        currentPlanBtn.addEventListener("click", function (e) {
+          var now = Date.now();
+          if (now - lastClick > 400) count = 0;
+          lastClick = now;
+          count++;
+          if (count >= 3) {
+            e.preventDefault();
+            count = 0;
+            try { sessionStorage.setItem("taply_test_premium", "1"); } catch (err) {}
+            window.location.href = "/dashboard";
+          }
         });
       })();
     </script>
