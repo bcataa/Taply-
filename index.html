@@ -100,7 +100,6 @@
               <a href="#links" class="sidebar-tab is-active"><span class="sidebar-tab-icon">📎</span>Links</a>
               <a href="#theme" class="sidebar-tab"><span class="sidebar-tab-icon">🎨</span>Design</a>
               <a href="#profile" class="sidebar-tab"><span class="sidebar-tab-icon">👤</span>Profile</a>
-              <a href="#platforms" class="sidebar-tab"><span class="sidebar-tab-icon">👥</span>Audience</a>
               <a href="#analytics" class="sidebar-tab"><span class="sidebar-tab-icon">📊</span>Insights</a>
             </nav>
             <div class="sidebar-tools">
@@ -165,9 +164,48 @@
                   </div>
                   <div class="links-strip-social" id="linksStripSocial"></div>
                 </div>
+                <div class="links-audience-block">
+                  <p class="audience-hint">Social profiles (click platform, then add URL below):</p>
+                  <div class="platform-grid" id="dashboardPlatforms"></div>
+                  <p class="social-urls-label" id="socialUrlsLabel">Profile URLs:</p>
+                  <div class="social-urls" id="socialUrls"></div>
+                </div>
                 <button type="button" class="btn-add-link" id="addLink">+ Add</button>
               </div>
               <div class="link-cards" id="linkList"></div>
+              <div class="modal-overlay add-modal-overlay" id="addModal" hidden aria-modal="true" role="dialog" aria-labelledby="addModalTitle">
+                <div class="modal-box add-modal-box" id="addModalBox">
+                  <div class="add-modal-header">
+                    <h2 class="add-modal-title" id="addModalTitle">Add</h2>
+                    <button type="button" class="add-modal-close" id="addModalClose" aria-label="Close">×</button>
+                  </div>
+                  <div class="add-modal-search-wrap">
+                    <input type="text" class="add-modal-search" id="addModalSearch" placeholder="Paste or search a link" />
+                  </div>
+                  <div class="add-modal-types">
+                    <button type="button" class="add-type-card" data-add-type="link" aria-pressed="true">
+                      <span class="add-type-icon">🔗</span>
+                      <span>Link</span>
+                    </button>
+                    <button type="button" class="add-type-card" data-add-type="section">
+                      <span class="add-type-icon">📂</span>
+                      <span>Section</span>
+                    </button>
+                  </div>
+                  <div class="add-modal-body">
+                    <nav class="add-modal-sidebar" aria-label="Categories">
+                      <button type="button" class="add-category is-active" data-category="suggested">💡 Suggested</button>
+                      <button type="button" class="add-category" data-category="social">❤️ Social</button>
+                      <button type="button" class="add-category" data-category="media">▶️ Media</button>
+                      <button type="button" class="add-category" data-category="contact">👤 Contact</button>
+                    </nav>
+                    <div class="add-modal-main">
+                      <p class="add-modal-category-title" id="addCategoryTitle">Suggested</p>
+                      <ul class="add-suggested-list" id="addSuggestedList"></ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="link-form-card" id="linkForm" hidden>
                 <label class="field field-checkbox"><input type="checkbox" id="linkTypeFriendly" /><span>Clickable image (friendly)</span></label>
                 <div id="linkFormNormal">
@@ -272,15 +310,6 @@
                 </div>
               </div>
               <button type="button" class="primary" id="saveProfile">Save</button>
-            </section>
-
-            <section class="dashboard-panel" id="panelPlatforms">
-              <h2>Audience</h2>
-              <p class="subtitle">Platforms and social links.</p>
-              <p class="audience-hint">Add links: click the platform logo (Instagram, YouTube, etc.), then enter your profile URL below. Changes appear live in the preview.</p>
-              <div class="platform-grid" id="dashboardPlatforms"></div>
-              <p class="social-urls-label" id="socialUrlsLabel">Added links (use full URL, e.g. https://instagram.com/your-username):</p>
-              <div class="social-urls" id="socialUrls"></div>
             </section>
 
             <section class="dashboard-panel" id="panelAnalytics">

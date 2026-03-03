@@ -1407,20 +1407,115 @@
     if (linkTypeFriendly) linkTypeFriendly.addEventListener("change", function () { enforcePremiumLinkOptions(); toggleLinkFormFriendly(); });
     if (linkIsSection) linkIsSection.addEventListener("change", function () { enforcePremiumLinkOptions(); toggleLinkFormFriendly(); });
     if (linkHighlight) linkHighlight.addEventListener("change", enforcePremiumLinkOptions);
-    addLinkBtn.addEventListener("click", () => {
+    var addModal = document.getElementById("addModal");
+    var addModalClose = document.getElementById("addModalClose");
+    var addModalSearch = document.getElementById("addModalSearch");
+    var addSuggestedList = document.getElementById("addSuggestedList");
+    var addCategoryTitle = document.getElementById("addCategoryTitle");
+    var ADD_SUGGESTED = [
+      { icon: "instagram", name: "Instagram", desc: "Display your posts and reels", emoji: "📷" },
+      { icon: "tiktok", name: "TikTok", desc: "Share your TikToks", emoji: "🎵" },
+      { icon: "youtube", name: "YouTube", desc: "Share YouTube videos", emoji: "▶️" },
+      { icon: "spotify", name: "Spotify", desc: "Share your latest or favorite music", emoji: "🎧" },
+      { icon: "website", name: "Website", desc: "Link to your site", emoji: "🌐" },
+      { icon: "telegram", name: "Telegram", desc: "Your Telegram profile", emoji: "✈️" },
+      { icon: "discord", name: "Discord", desc: "Invite to your server", emoji: "💬" },
+      { icon: "twitch", name: "Twitch", desc: "Your Twitch channel", emoji: "🎮" },
+    ];
+    var ADD_CATEGORIES = {
+      suggested: { title: "Suggested", items: ADD_SUGGESTED },
+      social: { title: "Social", items: ADD_SUGGESTED.filter(function (x) { return ["instagram", "tiktok", "discord", "telegram"].indexOf(x.icon) !== -1; }) },
+      media: { title: "Media", items: ADD_SUGGESTED.filter(function (x) { return ["youtube", "spotify", "twitch"].indexOf(x.icon) !== -1; }) },
+      contact: { title: "Contact", items: ADD_SUGGESTED.filter(function (x) { return ["website", "telegram"].indexOf(x.icon) !== -1; }) },
+    };
+    function openLinkFormWithPrefill(options) {
+      options = options || {};
       editingLinkId = null;
-      linkTitle.value = "";
-      linkUrl.value = "";
+      linkTitle.value = options.title || "";
+      linkUrl.value = options.url || "";
       linkHighlight.checked = false;
       if (linkTypeFriendly) linkTypeFriendly.checked = false;
-      if (linkIsSection) linkIsSection.checked = false;
-      if (linkSectionTitle) linkSectionTitle.value = "";
+      if (linkIsSection) linkIsSection.checked = !!options.isSection;
+      if (linkSectionTitle) linkSectionTitle.value = options.isSection ? (options.title || "Section") : "";
       if (linkImageUrl) linkImageUrl.value = "";
       if (linkFriendlyUrl) linkFriendlyUrl.value = "";
-      if (linkIcon) linkIcon.value = "";
+      if (linkIcon) linkIcon.value = options.icon || "";
       toggleLinkFormFriendly();
       linkForm.hidden = false;
+    }
+    function renderAddSuggested(categoryKey) {
+      var cat = ADD_CATEGORIES[categoryKey] || ADD_CATEGORIES.suggested;
+      if (addCategoryTitle) addCategoryTitle.textContent = cat.title;
+      if (!addSuggestedList) return;
+      addSuggestedList.innerHTML = "";
+      cat.items.forEach(function (item) {
+        var li = document.createElement("li");
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "add-suggested-item";
+        btn.dataset.icon = item.icon;
+        btn.dataset.name = item.name;
+        btn.innerHTML = "<span class=\"add-suggested-icon\">" + (item.emoji || "🔗") + "</span><span class=\"add-suggested-info\"><span class=\"add-suggested-name\">" + (item.name || "") + "</span><span class=\"add-suggested-desc\">" + (item.desc || "") + "</span></span><span class=\"add-suggested-arrow\">›</span>";
+        btn.addEventListener("click", function () {
+          if (addModal) addModal.hidden = true;
+          openLinkFormWithPrefill({ icon: item.icon, title: item.name });
+        });
+        li.appendChild(btn);
+        addSuggestedList.appendChild(li);
+      });
+    }
+    addLinkBtn.addEventListener("click", function () {
+      if (addModal) {
+        addModal.hidden = false;
+        if (addModalSearch) addModalSearch.value = "";
+        document.querySelectorAll(".add-type-card").forEach(function (c) { c.setAttribute("aria-pressed", c.dataset.addType === "link" ? "true" : "false"); });
+        document.querySelectorAll(".add-category").forEach(function (c) { c.classList.toggle("is-active", c.dataset.category === "suggested"); });
+        renderAddSuggested("suggested");
+      } else {
+        openLinkFormWithPrefill();
+      }
     });
+    if (addModalClose) addModalClose.addEventListener("click", function () { if (addModal) addModal.hidden = true; });
+    if (addModal) addModal.addEventListener("click", function (e) { if (e.target === addModal) addModal.hidden = true; });
+    document.querySelectorAll(".add-type-card").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".add-type-card").forEach(function (c) { c.setAttribute("aria-pressed", c === btn ? "true" : "false"); });
+        var type = btn.dataset.addType;
+        if (addModal) addModal.hidden = true;
+        if (type === "section") openLinkFormWithPrefill({ isSection: true, title: "Section" });
+        else openLinkFormWithPrefill();
+      });
+    });
+    document.querySelectorAll(".add-category").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".add-category").forEach(function (c) { c.classList.remove("is-active"); });
+        btn.classList.add("is-active");
+        renderAddSuggested(btn.dataset.category || "suggested");
+      });
+    });
+    if (addModalSearch) {
+      addModalSearch.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") { if (addModal) addModal.hidden = true; }
+      });
+      addModalSearch.addEventListener("input", function () {
+        var q = (addModalSearch.value || "").trim().toLowerCase();
+        if (!q) { var active = document.querySelector(".add-category.is-active"); renderAddSuggested(active ? (active.dataset.category || "suggested") : "suggested"); return; }
+        var filtered = ADD_SUGGESTED.filter(function (x) { return (x.name + " " + (x.desc || "")).toLowerCase().indexOf(q) !== -1; });
+        if (addCategoryTitle) addCategoryTitle.textContent = "Search";
+        if (!addSuggestedList) return;
+        addSuggestedList.innerHTML = "";
+        filtered.forEach(function (item) {
+          var li = document.createElement("li");
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "add-suggested-item";
+          b.innerHTML = "<span class=\"add-suggested-icon\">" + (item.emoji || "🔗") + "</span><span class=\"add-suggested-info\"><span class=\"add-suggested-name\">" + item.name + "</span><span class=\"add-suggested-desc\">" + (item.desc || "") + "</span></span><span class=\"add-suggested-arrow\">›</span>";
+          b.addEventListener("click", function () { if (addModal) addModal.hidden = true; openLinkFormWithPrefill({ icon: item.icon, title: item.name }); });
+          li.appendChild(b);
+          addSuggestedList.appendChild(li);
+        });
+      });
+    }
     linkFormCancel.addEventListener("click", () => {
       linkForm.hidden = true;
       editingLinkId = null;
@@ -1486,7 +1581,8 @@
     });
 
     function activateDashboardTab(hash) {
-    const name = (hash && hash.slice(1)) || "links";
+    var name = (hash && hash.slice(1)) || "links";
+    if (name === "platforms") { name = "links"; if (window.history && window.history.replaceState) window.history.replaceState(null, "", "#links"); }
     const panelId = "panel" + name.charAt(0).toUpperCase() + name.slice(1);
     document.querySelectorAll(".sidebar-tab").forEach((t) => {
       t.classList.toggle("is-active", t.getAttribute("href") === "#" + name);
