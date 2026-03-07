@@ -110,6 +110,8 @@
           var titleSize = design.titleSize || "small";
           var titleColor = design.titleColor || "#362630";
           var titleLogoUrl = design.titleLogoUrl || "";
+          var titleFont = design.titleFont || "DM Sans";
+          var alternativeTitleFont = !!design.alternativeTitleFont;
           var isHero = headerLayout === "hero";
           var liveProfileEl = document.getElementById("liveProfile");
           var liveHeroHalf = document.getElementById("liveHeroHalf");
@@ -146,9 +148,19 @@
           var liveNameHero = document.getElementById("liveNameHero");
           var liveTitleLogo = document.getElementById("liveTitleLogo");
           var liveTitleLogoClassic = document.getElementById("liveTitleLogoClassic");
+          if (alternativeTitleFont && titleFont) {
+            var existing = document.getElementById("profileTitleFontLink");
+            if (existing) existing.remove();
+            var link = document.createElement("link");
+            link.id = "profileTitleFontLink";
+            link.rel = "stylesheet";
+            link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(titleFont).replace(/%20/g, "+") + ":wght@400;600;700&display=swap";
+            document.head.appendChild(link);
+          }
           function applyTitleColorSize(el) {
             if (!el) return;
             el.style.color = titleColor;
+            if (alternativeTitleFont && titleFont) el.style.fontFamily = titleFont + ", sans-serif";
             el.classList.toggle("live-name-size-large", titleSize === "large");
           }
           if (titleStyle === "logo" && titleLogoUrl) {

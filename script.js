@@ -72,6 +72,8 @@
     { id: "purple", name: "Purple", previewClass: "theme-purple" },
   ];
 
+  const TITLE_FONTS = ["DM Sans", "Inter", "Playfair Display", "Poppins", "Roboto", "Roboto Slab", "Open Sans", "Lato", "Anton", "Domine", "Manrope", "Alfa Slab One", "Belanosima", "Chillax", "Oxanium", "IBM Plex Sans", "Kavivanar", "Old Standard TT", "Chango", "Black Ops One", "Fustat"];
+
   const PLATFORMS = [
     "instagram",
     "whatsapp",
@@ -199,6 +201,7 @@
         pageTextColor: "#362630",
         titleColor: "#362630",
         titleLogoUrl: "",
+        titleFont: "DM Sans",
       },
     };
   }
@@ -1207,7 +1210,7 @@
     const hash = window.location.hash || "#links";
     activateDashboardTab(hash);
 
-    dashboardDisplayName.value = profile.displayName || "";
+    if (dashboardDisplayName) dashboardDisplayName.value = profile.displayName || "";
     dashboardUsername.value = profile.username || "";
     dashboardBio.value = profile.bio || "";
     dashboardBioCounter.textContent = (profile.bio || "").length + "/160";
@@ -1276,6 +1279,10 @@
           if (titleInput) titleInput.value = p.displayName || "";
           var altFont = document.getElementById("designAlternativeTitleFont");
           if (altFont) altFont.checked = !!d.alternativeTitleFont;
+          var titleFontWrap = document.getElementById("designTitleFontWrap");
+          var titleFontTrigger = document.getElementById("designTitleFontTrigger");
+          applyDesignConditionalVisibility();
+          if (titleFontTrigger) titleFontTrigger.textContent = d.titleFont || "DM Sans";
           setOptionSelected("headerLayout", d.headerLayout);
           setOptionSelected("titleStyle", d.titleStyle);
           setOptionSelected("titleSize", d.titleSize);
@@ -1290,7 +1297,7 @@
               logoUrlInput.placeholder = "Opțional: URL";
             }
           }
-          if (logoField) logoField.hidden = d.titleStyle !== "logo";
+          applyDesignConditionalVisibility();
           var logoPreview = document.getElementById("designLogoPreview");
           if (logoPreview) {
             if (d.titleLogoUrl) { logoPreview.src = d.titleLogoUrl; logoPreview.hidden = false; }
@@ -1317,12 +1324,37 @@
           setColorInput("designPageTextColor", "designPageTextColorSwatch", d.pageTextColor);
           var altTitle = document.getElementById("designAltTitleFontText");
           if (altTitle) altTitle.checked = !!d.alternativeTitleFont;
+          var titleFontWrapText = document.getElementById("designTitleFontWrapText");
+          var titleFontTriggerText = document.getElementById("designTitleFontTriggerText");
+          applyDesignConditionalVisibility();
+          if (titleFontTriggerText) titleFontTriggerText.textContent = d.titleFont || "DM Sans";
           setOptionSelected("titleSize", d.titleSize);
         } else if (panelId === "designPanelColors") {
           setColorInput("designColorsButtons", "designColorsButtonsSwatch", d.buttonsColor || "#D14646");
           setColorInput("designColorsButtonText", "designColorsButtonTextSwatch", d.buttonTextColor || "#E40390");
           setColorInput("designColorsPageText", "designColorsPageTextSwatch", d.pageTextColor || "#362630");
           setColorInput("designColorsTitleText", "designColorsTitleTextSwatch", d.titleColor || "#362630");
+        }
+      }
+      function applyDesignConditionalVisibility() {
+        var p = getProfile();
+        var d = (p && p.design) ? p.design : defaultProfile().design;
+        var showLogo = (d.titleStyle || "text") === "logo";
+        var showTitleFont = !!d.alternativeTitleFont;
+        var logoField = document.getElementById("designFieldLogoUrl");
+        var titleFontWrap = document.getElementById("designTitleFontWrap");
+        var titleFontWrapText = document.getElementById("designTitleFontWrapText");
+        if (logoField) {
+          logoField.hidden = !showLogo;
+          logoField.style.display = showLogo ? "" : "none";
+        }
+        if (titleFontWrap) {
+          titleFontWrap.hidden = !showTitleFont;
+          titleFontWrap.style.display = showTitleFont ? "" : "none";
+        }
+        if (titleFontWrapText) {
+          titleFontWrapText.hidden = !showTitleFont;
+          titleFontWrapText.style.display = showTitleFont ? "" : "none";
         }
       }
       function setOptionSelected(optionName, value) {
@@ -1439,10 +1471,7 @@
           if (parent) parent.querySelectorAll(".design-option-btn[data-option=\"" + opt + "\"], .design-option-tile[data-option=\"" + opt + "\"]").forEach(function (b) { b.classList.remove("is-selected"); });
           btn.classList.add("is-selected");
           applyDesignOption(opt, val);
-          if (opt === "titleStyle") {
-            var logoField = document.getElementById("designFieldLogoUrl");
-            if (logoField) logoField.hidden = val !== "logo";
-          }
+          if (opt === "titleStyle") applyDesignConditionalVisibility();
         });
       });
       document.querySelectorAll(".design-color-input").forEach(function (input) {
@@ -1639,13 +1668,62 @@
           var p = getProfile();
           if (!p || !p.design) return;
           p.design = p.design || defaultProfile().design;
-          if (id === "designAlternativeTitleFont" || id === "designAltTitleFontText") p.design.alternativeTitleFont = el.checked;
-          else if (id === "designAnimateGradient") p.design.animateGradient = el.checked;
+          if (id === "designAlternativeTitleFont" || id === "designAltTitleFontText") {
+            p.design.alternativeTitleFont = el.checked;
+            var other = id === "designAlternativeTitleFont" ? document.getElementById("designAltTitleFontText") : document.getElementById("designAlternativeTitleFont");
+            if (other) other.checked = el.checked;
+            applyDesignConditionalVisibility();
+          } else if (id === "designAnimateGradient") p.design.animateGradient = el.checked;
           else if (id === "designNoise") p.design.noise = el.checked;
           saveProfile(p);
           liveRefreshPreview();
         });
       });
+      (function () {
+        var titleFontModal = document.getElementById("titleFontModal");
+        var titleFontModalBox = document.getElementById("titleFontModalBox");
+        var titleFontModalGrid = document.getElementById("titleFontModalGrid");
+        var titleFontModalClose = document.getElementById("titleFontModalClose");
+        function openTitleFontModal() {
+          if (!titleFontModal || !titleFontModalGrid) return;
+          var p = getProfile();
+          var current = (p && p.design && p.design.titleFont) || "DM Sans";
+          titleFontModalGrid.innerHTML = "";
+          TITLE_FONTS.forEach(function (fontName) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = fontName;
+            btn.style.fontFamily = fontName + ", sans-serif";
+            btn.classList.toggle("is-selected", fontName === current);
+            btn.addEventListener("click", function () {
+              var pr = getProfile();
+              if (pr && pr.design) {
+                pr.design.titleFont = fontName;
+                saveProfile(pr);
+                var trigger = document.getElementById("designTitleFontTrigger");
+                var triggerText = document.getElementById("designTitleFontTriggerText");
+                if (trigger) trigger.textContent = fontName;
+                if (triggerText) triggerText.textContent = fontName;
+                titleFontModalGrid.querySelectorAll("button").forEach(function (b) { b.classList.remove("is-selected"); if (b.textContent === fontName) b.classList.add("is-selected"); });
+                if (titleFontModal) titleFontModal.hidden = true;
+                liveRefreshPreview();
+              }
+            });
+            titleFontModalGrid.appendChild(btn);
+          });
+          titleFontModal.hidden = false;
+        }
+        function closeTitleFontModal() {
+          if (titleFontModal) titleFontModal.hidden = true;
+        }
+        ["designTitleFontTrigger", "designTitleFontTriggerText"].forEach(function (triggerId) {
+          var trigger = document.getElementById(triggerId);
+          if (trigger) trigger.addEventListener("click", openTitleFontModal);
+        });
+        if (titleFontModalClose) titleFontModalClose.addEventListener("click", closeTitleFontModal);
+        if (titleFontModal) titleFontModal.addEventListener("click", function (e) { if (e.target === titleFontModal) closeTitleFontModal(); });
+        if (titleFontModalBox) titleFontModalBox.addEventListener("click", function (e) { e.stopPropagation(); });
+      })();
       var designPageFont = document.getElementById("designPageFont");
       if (designPageFont) designPageFont.addEventListener("change", function () {
         var p = getProfile();
@@ -1686,6 +1764,7 @@
         liveRefreshPreview();
       });
       updateDesignRowValues();
+      applyDesignConditionalVisibility();
     }
 
     function getProfilePreviewUrl() {
@@ -1999,7 +2078,7 @@
 
     saveProfileBtn.addEventListener("click", () => {
       const p = getProfile();
-      p.displayName = dashboardDisplayName.value.trim() || "Name";
+      p.displayName = (dashboardDisplayName ? dashboardDisplayName.value.trim() : (p.displayName || (document.getElementById("designTitleInput") && document.getElementById("designTitleInput").value.trim()))) || "Name";
       const raw = dashboardUsername.value.trim();
       p.username = raw ? raw.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") : "";
       p.bio = dashboardBio.value.trim();
