@@ -273,6 +273,7 @@ function profileToPublicJson(username, p) {
     customBackgroundImage: p.customBackgroundImage || null,
     customBackgroundPosition: p.customBackgroundPosition || "center center",
     customBackgroundZoom: typeof p.customBackgroundZoom === "number" ? p.customBackgroundZoom : 100,
+    design: p.design || null,
     platforms: p.platforms || [],
     socialUrls: p.socialUrls || {},
     socialLinks: socialLinks,

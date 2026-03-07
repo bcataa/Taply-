@@ -156,21 +156,57 @@
           <main class="dashboard-main">
             <section class="dashboard-panel is-active" id="panelLinks">
               <div class="links-header">
-                <h2>Links</h2>
-                <p class="subtitle">Add, reorder and style your links. Drag to reorder.</p>
+                <div class="links-header-top">
+                  <h2 class="links-title">LINKS</h2>
+                  <a href="/premium" class="links-enhance-btn" target="_blank" rel="noopener">✨ Enhance</a>
+                </div>
                 <div class="links-profile-strip" id="linksProfileStrip">
                   <div class="links-strip-avatar" id="linksStripAvatar">
                     <img id="linksStripAvatarImg" alt="" hidden />
                   </div>
-                  <div class="links-strip-social" id="linksStripSocial"></div>
-                </div>
-                <div class="links-audience-block">
-                  <p class="audience-hint">Social profiles (click platform, then add URL below):</p>
-                  <div class="platform-grid" id="dashboardPlatforms"></div>
-                  <p class="social-urls-label" id="socialUrlsLabel">Profile URLs:</p>
-                  <div class="social-urls" id="socialUrls"></div>
+                  <div class="links-strip-user">
+                    <span class="links-username" id="linksUsername">—</span>
+                    <div class="links-platform-row" id="linksPlatformRow">
+                      <div class="links-strip-add-icons" id="linksStripAddIcons"></div>
+                    </div>
+                  </div>
                 </div>
                 <button type="button" class="btn-add-link" id="addLink">+ Add</button>
+                <div class="links-secondary-actions">
+                  <button type="button" class="links-add-collection" id="addCollectionBtn">📁 Add collection</button>
+                  <button type="button" class="links-view-archive" id="viewArchiveBtn">View archive ›</button>
+                </div>
+                <section class="profile-urls-section" id="profileUrlsSection" aria-labelledby="profileUrlsTitle">
+                  <h3 class="profile-urls-title" id="profileUrlsTitle">Profile URLs</h3>
+                  <p class="profile-urls-hint" id="socialUrlsLabel">Click + on an icon above to add, − to remove; click the icon to edit. Drag to reorder.</p>
+                  <div class="social-urls" id="socialUrls"></div>
+                </section>
+              </div>
+              <div class="modal-overlay" id="editProfileUrlModal" hidden aria-modal="true" role="dialog" aria-labelledby="editProfileUrlModalTitle">
+                <div class="modal-box add-modal-box">
+                  <div class="add-modal-header">
+                    <h2 class="add-modal-title" id="editProfileUrlModalTitle">Edit profile URL</h2>
+                    <button type="button" class="add-modal-close" id="editProfileUrlModalClose" aria-label="Close">×</button>
+                  </div>
+                  <div class="link-form-card">
+                    <label class="field"><span>Platform</span><input type="text" id="editProfileUrlPlatform" readonly /></label>
+                    <label class="field"><span>URL</span><input type="url" id="editProfileUrlInput" placeholder="https://..." /></label>
+                    <div class="form-actions">
+                      <button type="button" class="ghost" id="editProfileUrlCancel">Cancel</button>
+                      <button type="button" class="primary" id="editProfileUrlSave">Save</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-overlay" id="addProfileModal" hidden aria-modal="true" role="dialog" aria-labelledby="addProfileModalTitle">
+                <div class="modal-box add-modal-box">
+                  <div class="add-modal-header">
+                    <h2 class="add-modal-title" id="addProfileModalTitle">Add profile</h2>
+                    <button type="button" class="add-modal-close" id="addProfileModalClose" aria-label="Close">×</button>
+                  </div>
+                  <p class="add-modal-subtitle">Choose a platform to add to your profile URLs.</p>
+                  <div class="add-profile-grid" id="addProfileGrid"></div>
+                </div>
               </div>
               <div class="link-cards" id="linkList"></div>
               <div class="modal-overlay add-modal-overlay" id="addModal" hidden aria-modal="true" role="dialog" aria-labelledby="addModalTitle">
@@ -206,44 +242,156 @@
                   </div>
                 </div>
               </div>
-              <div class="link-form-card" id="linkForm" hidden>
-                <label class="field field-checkbox"><input type="checkbox" id="linkTypeFriendly" /><span>Clickable image (friendly)</span></label>
-                <div id="linkFormNormal">
-                  <label class="field"><span>Icon</span><select id="linkIcon"><option value="">—</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="spotify">Spotify</option><option value="steam">Steam</option><option value="twitch">Twitch</option><option value="discord">Discord</option><option value="telegram">Telegram</option><option value="website">Website</option><option value="link">Link</option></select></label>
-                  <label class="field"><span>Title</span><input type="text" id="linkTitle" placeholder="e.g. YouTube" /></label>
-                  <label class="field"><span>URL</span><input type="url" id="linkUrl" placeholder="https://..." /></label>
-                </div>
-                <div id="linkFormFriendly" hidden>
-                  <label class="field"><span>Image URL</span><input type="url" id="linkImageUrl" placeholder="https://...image.jpg" /></label>
-                  <label class="field"><span>Link on click</span><input type="url" id="linkFriendlyUrl" placeholder="https://..." /></label>
-                </div>
-                <label class="field field-checkbox"><input type="checkbox" id="linkHighlight" /><span>Highlight</span></label>
-                <label class="field field-checkbox"><input type="checkbox" id="linkIsSection" /><span>Section separator</span></label>
-                <div id="linkFormSectionTitle" hidden>
-                  <label class="field"><span>Section title</span><input type="text" id="linkSectionTitle" placeholder="e.g. Social" /></label>
-                </div>
-                <div class="form-actions">
-                  <button type="button" class="ghost" id="linkFormCancel">Cancel</button>
-                  <button type="button" class="primary" id="linkFormSave">Save</button>
+              <div class="modal-overlay" id="editLinkModal" hidden aria-modal="true" role="dialog" aria-labelledby="editLinkModalTitle">
+                <div class="modal-box add-modal-box">
+                  <div class="add-modal-header">
+                    <h2 class="add-modal-title" id="editLinkModalTitle">Edit link</h2>
+                    <button type="button" class="add-modal-close" id="editLinkModalClose" aria-label="Close">×</button>
+                  </div>
+                  <div class="link-form-card" id="linkForm">
+                    <label class="field field-checkbox"><input type="checkbox" id="linkTypeFriendly" /><span>Clickable image (friendly)</span></label>
+                    <div id="linkFormNormal">
+                      <label class="field"><span>Icon</span><select id="linkIcon"><option value="">—</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="spotify">Spotify</option><option value="steam">Steam</option><option value="twitch">Twitch</option><option value="discord">Discord</option><option value="telegram">Telegram</option><option value="website">Website</option><option value="link">Link</option></select></label>
+                      <label class="field"><span>Title</span><input type="text" id="linkTitle" placeholder="e.g. YouTube" /></label>
+                      <label class="field"><span>URL</span><input type="url" id="linkUrl" placeholder="https://..." /></label>
+                    </div>
+                    <div id="linkFormFriendly" hidden>
+                      <label class="field"><span>Image URL</span><input type="url" id="linkImageUrl" placeholder="https://...image.jpg" /></label>
+                      <label class="field"><span>Link on click</span><input type="url" id="linkFriendlyUrl" placeholder="https://..." /></label>
+                    </div>
+                    <label class="field field-checkbox"><input type="checkbox" id="linkHighlight" /><span>Highlight</span></label>
+                    <label class="field field-checkbox"><input type="checkbox" id="linkIsSection" /><span>Section separator</span></label>
+                    <div id="linkFormSectionTitle" hidden>
+                      <label class="field"><span>Section title</span><input type="text" id="linkSectionTitle" placeholder="e.g. Social" /></label>
+                    </div>
+                    <div class="form-actions">
+                      <button type="button" class="ghost" id="linkFormCancel">Cancel</button>
+                      <button type="button" class="primary" id="linkFormSave">Save</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
 
-            <section class="dashboard-panel" id="panelTheme">
-              <h2>Design</h2>
-              <p class="subtitle">Choose your page theme or add a custom background. You can change anytime: if you set a custom image, click a theme to switch back.</p>
-              <div class="theme-grid" id="dashboardThemes"></div>
-              <div class="custom-design-card-wrap" id="customDesignCardWrap">
-                <button type="button" class="theme-card custom-design-card" id="customDesignCard" aria-label="Add your design">
-                  <div class="theme-preview custom-design-card-preview">
-                    <div class="avatar"></div>
-                    <div class="line short"></div>
-                    <div class="chip-row"><span class="chip"></span><span class="chip"></span><span class="chip"></span></div>
-                    <span class="custom-design-card-text">Add your design</span>
-                    <div class="pill"></div><div class="pill"></div><div class="pill"></div>
+            <section class="dashboard-panel design-panel" id="panelTheme">
+              <div class="design-intro" id="designIntro">
+                <div class="design-header">
+                  <h2 class="design-title">Design</h2>
+                  <div class="design-header-actions">
+                    <a href="/premium" class="design-enhance-btn" target="_blank" rel="noopener">✨ Enhance</a>
+                    <button type="button" class="design-undo-btn" aria-label="Undo">↶</button>
+                    <button type="button" class="design-redo-btn" aria-label="Redo">↷</button>
+                    <button type="button" class="design-save-btn primary">Save</button>
                   </div>
-                  <span>Add your design</span>
-                </button>
+                </div>
+                <div class="design-intro-main">
+                <div class="design-theme-section">
+                  <h3 class="design-section-title">Theme</h3>
+                  <div class="design-theme-preview" id="designThemePreview">
+                    <div class="design-theme-preview-bar">
+                      <div class="design-theme-preview-aa">Aa</div>
+                      <span class="design-theme-preview-label">Custom</span>
+                      <span class="design-theme-preview-arrow">›</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="design-customize-section">
+                  <div class="design-customize-head">
+                    <h3 class="design-section-title">Customize theme</h3>
+                    <button type="button" class="design-shuffle-btn" id="designShuffleBtn">🔀 Shuffle</button>
+                  </div>
+                  <div class="design-customize-list">
+                    <button type="button" class="design-customize-row" data-panel="header">
+                      <span class="design-row-icon design-row-icon-header">👤</span>
+                      <span class="design-row-label">Header</span>
+                      <span class="design-row-value" id="designHeaderValue">Classic</span>
+                      <span class="design-row-arrow">›</span>
+                    </button>
+                    <button type="button" class="design-customize-row" data-panel="wallpaper">
+                      <span class="design-row-icon design-row-icon-wallpaper"></span>
+                      <span class="design-row-label">Wallpaper</span>
+                      <span class="design-row-value" id="designWallpaperValue">Gradient</span>
+                      <span class="design-row-arrow">›</span>
+                    </button>
+                    <button type="button" class="design-customize-row" data-panel="buttons">
+                      <span class="design-row-icon design-row-icon-buttons">○</span>
+                      <span class="design-row-label">Buttons</span>
+                      <span class="design-row-value" id="designButtonsValue">Fill</span>
+                      <span class="design-row-arrow">›</span>
+                    </button>
+                    <button type="button" class="design-customize-row" data-panel="text">
+                      <span class="design-row-icon design-row-icon-text">Aa</span>
+                      <span class="design-row-label">Text</span>
+                      <span class="design-row-value" id="designTextValue">DM Sans</span>
+                      <span class="design-row-arrow">›</span>
+                    </button>
+                    <button type="button" class="design-customize-row" data-panel="colors">
+                      <span class="design-row-icon design-row-icon-colors"></span>
+                      <span class="design-row-label">Colors</span>
+                      <span class="design-row-value"></span>
+                      <span class="design-row-arrow">›</span>
+                    </button>
+                  </div>
+                </div>
+                </div>
+                <div class="design-theme-grid-wrap" hidden>
+                  <button type="button" class="design-back-btn design-theme-grid-back" data-back="design">‹ Back</button>
+                  <div class="theme-grid" id="dashboardThemes"></div>
+                  <div class="custom-design-card-wrap" id="customDesignCardWrap"></div>
+                </div>
+              </div>
+              <div class="design-subpanel" id="designPanelHeader" hidden>
+                <div class="design-subpanel-header">
+                  <button type="button" class="design-back-btn" data-back="design">‹ Header</button>
+                </div>
+                <div class="design-subpanel-body">
+                  <label class="design-field"><span>Profile image</span><div class="design-profile-img-wrap"><div class="design-profile-img-placeholder" id="designHeaderAvatar"><img class="design-header-avatar-img" id="designHeaderAvatarImg" alt="" hidden /></div><button type="button" class="design-add-btn" id="designHeaderAddAvatarBtn">+ Add</button></div></label>
+                  <label class="design-field"><span>Profile image layout</span><div class="design-option-row"><button type="button" class="design-option-btn is-selected" data-option="headerLayout" data-value="classic">Classic</button><button type="button" class="design-option-btn" data-option="headerLayout" data-value="hero">Hero ⚡</button></div></label>
+                  <label class="design-field"><span>Title</span><input type="text" class="design-input" id="designTitleInput" placeholder="Username" /></label>
+                  <label class="design-field"><span>Title style</span><div class="design-option-row"><button type="button" class="design-option-btn is-selected" data-option="titleStyle" data-value="text">Text</button><button type="button" class="design-option-btn" data-option="titleStyle" data-value="logo">Logo</button></div></label>
+                  <label class="design-field design-field-logo-url" id="designFieldLogoUrl" hidden><span>Logo image</span><span class="design-field-desc">Apare pe profil. Poți încărca doar un icon (imagine), fără link.</span><div class="design-logo-row"><div class="design-logo-preview-wrap" id="designLogoPreviewWrap"><img class="design-logo-preview" id="designLogoPreview" alt="" hidden /></div><div class="design-logo-actions"><input type="url" class="design-input" id="designTitleLogoUrl" placeholder="Opțional: URL" /><button type="button" class="design-add-btn design-upload-logo-btn" id="designUploadLogoBtn">Încarcă icon</button></div></div><input type="file" accept="image/*" id="designTitleLogoFile" hidden /></label>
+                  <label class="design-field"><span>Title font color</span><div class="design-color-wrap design-color-picker-trigger-wrap"><input type="text" class="design-input design-color-input design-color-input-opens-picker" id="designTitleColor" value="#362630" placeholder="#362630" /><span class="design-color-swatch design-color-swatch-clickable" id="designTitleColorSwatch" role="button" tabindex="0" aria-label="Exemplu culoare titlu – click pentru paletă"></span></div></label>
+                  <label class="design-field"><span>Size</span><div class="design-option-row"><button type="button" class="design-option-btn is-selected" data-option="titleSize" data-value="small">Small</button><button type="button" class="design-option-btn" data-option="titleSize" data-value="large">Large</button></div></label>
+                  <label class="design-field design-field-toggle"><span>Alternative title font</span><span class="design-field-desc">Matches page font by default</span><label class="design-toggle"><input type="checkbox" id="designAlternativeTitleFont" /><span></span></label></label>
+                </div>
+              </div>
+              <div class="design-subpanel" id="designPanelWallpaper" hidden>
+                <div class="design-subpanel-header"><button type="button" class="design-back-btn" data-back="design">‹ Wallpaper</button></div>
+                <div class="design-subpanel-body">
+                  <label class="design-field"><span>Wallpaper style</span><div class="design-option-grid"><button type="button" class="design-option-tile" data-option="wallpaperStyle" data-value="fill">Fill</button><button type="button" class="design-option-tile is-selected" data-option="wallpaperStyle" data-value="gradient">Gradient</button><button type="button" class="design-option-tile" data-option="wallpaperStyle" data-value="blur">Blur</button><button type="button" class="design-option-tile" data-option="wallpaperStyle" data-value="pattern">Pattern</button><button type="button" class="design-option-tile" data-option="wallpaperStyle" data-value="image">Image</button><button type="button" class="design-option-tile" data-option="wallpaperStyle" data-value="video">Video</button></div></label>
+                  <label class="design-field"><span>Gradient style</span><div class="design-option-row"><button type="button" class="design-option-btn" data-option="gradientStyle" data-value="custom">Custom</button><button type="button" class="design-option-btn is-selected" data-option="gradientStyle" data-value="premade">Pre-made</button></div></label>
+                  <label class="design-field"><span>Gradient</span><div class="design-gradient-row" id="designGradientPresets"></div></label>
+                  <label class="design-field design-field-toggle"><span>Animate</span><label class="design-toggle"><input type="checkbox" id="designAnimateGradient" /><span></span></label></label>
+                  <label class="design-field design-field-toggle"><span>Noise</span><span class="design-field-desc">Add a subtle grain texture</span><label class="design-toggle"><input type="checkbox" id="designNoise" /><span></span></label></label>
+                </div>
+              </div>
+              <div class="design-subpanel" id="designPanelButtons" hidden>
+                <div class="design-subpanel-header"><button type="button" class="design-back-btn" data-back="design">‹ Buttons</button></div>
+                <div class="design-subpanel-body">
+                  <label class="design-field"><span>Button style</span><div class="design-option-row"><button type="button" class="design-option-btn is-selected" data-option="buttonStyle" data-value="solid">Solid</button><button type="button" class="design-option-btn" data-option="buttonStyle" data-value="glass">Glass</button><button type="button" class="design-option-btn" data-option="buttonStyle" data-value="outline">Outline</button></div></label>
+                  <label class="design-field"><span>Corner roundness</span><div class="design-option-row"><button type="button" class="design-option-btn" data-option="cornerRoundness" data-value="square">Square</button><button type="button" class="design-option-btn" data-option="cornerRoundness" data-value="round">Round</button><button type="button" class="design-option-btn" data-option="cornerRoundness" data-value="rounder">Rounder</button><button type="button" class="design-option-btn is-selected" data-option="cornerRoundness" data-value="full">Full</button></div></label>
+                  <label class="design-field"><span>Button shadow</span><div class="design-option-row"><button type="button" class="design-option-btn" data-option="buttonShadow" data-value="none">None</button><button type="button" class="design-option-btn is-selected" data-option="buttonShadow" data-value="soft">Soft</button><button type="button" class="design-option-btn" data-option="buttonShadow" data-value="strong">Strong</button><button type="button" class="design-option-btn" data-option="buttonShadow" data-value="hard">Hard</button></div></label>
+                  <label class="design-field"><span>Button color</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designButtonsColor" value="#FFFFFF" /><span class="design-color-swatch" id="designButtonsColorSwatch"></span></div></label>
+                  <label class="design-field"><span>Button text color</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designButtonTextColor" value="#362630" /><span class="design-color-swatch" id="designButtonTextColorSwatch"></span></div></label>
+                </div>
+              </div>
+              <div class="design-subpanel" id="designPanelText" hidden>
+                <div class="design-subpanel-header"><button type="button" class="design-back-btn" data-back="design">‹ Text</button></div>
+                <div class="design-subpanel-body">
+                  <label class="design-field"><span>Page font</span><select class="design-input design-select" id="designPageFont"><option value="DM Sans">DM Sans</option><option value="Inter">Inter</option><option value="Playfair Display">Playfair Display</option></select></label>
+                  <label class="design-field"><span>Page text color</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designPageTextColor" value="#362630" /><span class="design-color-swatch" id="designPageTextColorSwatch"></span></div></label>
+                  <label class="design-field design-field-toggle"><span>Alternative title font</span><span class="design-field-desc">Matches page font by default</span><label class="design-toggle"><input type="checkbox" id="designAltTitleFontText" /><span></span></label></label>
+                  <label class="design-field"><span>Title size</span><div class="design-option-row"><button type="button" class="design-option-btn is-selected" data-option="titleSize" data-value="small">Small</button><button type="button" class="design-option-btn" data-option="titleSize" data-value="large">Large</button></div></label>
+                </div>
+              </div>
+              <div class="design-subpanel" id="designPanelColors" hidden>
+                <div class="design-subpanel-header"><button type="button" class="design-back-btn" data-back="design">‹ Colors</button></div>
+                <div class="design-subpanel-body">
+                  <label class="design-field"><span>Buttons</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designColorsButtons" value="#D14646" /><span class="design-color-swatch" id="designColorsButtonsSwatch"></span></div></label>
+                  <label class="design-field"><span>Button text</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designColorsButtonText" value="#E40390" /><span class="design-color-swatch" id="designColorsButtonTextSwatch"></span></div></label>
+                  <label class="design-field"><span>Page text</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designColorsPageText" value="#362630" /><span class="design-color-swatch" id="designColorsPageTextSwatch"></span></div></label>
+                  <label class="design-field"><span>Title text</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designColorsTitleText" value="#362630" /><span class="design-color-swatch" id="designColorsTitleTextSwatch"></span></div></label>
+                </div>
               </div>
             </section>
 
@@ -294,15 +442,70 @@
               </div>
             </div>
 
+            <div class="modal-overlay profile-image-modal-overlay" id="profileImageModal" hidden aria-modal="true" role="dialog" aria-labelledby="profileImageModalTitle">
+              <div class="modal-box profile-image-modal-box" id="profileImageModalBox">
+                <div class="profile-image-modal-header">
+                  <h2 class="modal-title" id="profileImageModalTitle">Profile Image</h2>
+                  <button type="button" class="profile-image-modal-close" id="profileImageModalClose" aria-label="Închide">×</button>
+                </div>
+                <div class="profile-image-modal-options">
+                  <button type="button" class="profile-image-modal-option" id="profileImageOptionFile">
+                    <span class="profile-image-modal-icon profile-image-modal-icon-image"></span>
+                    <span class="profile-image-modal-option-text">Select image or GIF</span>
+                    <span class="profile-image-modal-chevron">›</span>
+                  </button>
+                  <button type="button" class="profile-image-modal-option" id="profileImageOptionVideo">
+                    <span class="profile-image-modal-icon profile-image-modal-icon-video"></span>
+                    <span class="profile-image-modal-option-text">Select video</span>
+                    <span class="profile-image-modal-chevron">›</span>
+                  </button>
+                  <button type="button" class="profile-image-modal-option" id="profileImageOptionAI">
+                    <span class="profile-image-modal-icon profile-image-modal-icon-ai"></span>
+                    <span class="profile-image-modal-option-text">Generate with AI</span>
+                    <span class="profile-image-modal-badge">+</span>
+                    <span class="profile-image-modal-chevron">›</span>
+                  </button>
+                  <button type="button" class="profile-image-modal-option" id="profileImageOptionCanva">
+                    <span class="profile-image-modal-icon profile-image-modal-icon-canva"></span>
+                    <span class="profile-image-modal-option-text">Design with Canva</span>
+                    <span class="profile-image-modal-chevron">›</span>
+                  </button>
+                </div>
+                <input type="file" accept="image/*,image/gif" id="profileImageFileInput" hidden />
+              </div>
+            </div>
+
+            <div class="modal-overlay design-color-picker-overlay" id="designColorPickerModal" hidden aria-modal="true" role="dialog" aria-labelledby="designColorPickerTitle">
+              <div class="modal-box design-color-picker-box" id="designColorPickerBox">
+                <h2 class="modal-title" id="designColorPickerTitle">Title font color</h2>
+                <div class="design-color-picker-content">
+                  <div class="design-color-picker-gradient" id="designColorPickerGradient" style="--picker-hue: 330;">
+                    <span class="design-color-picker-selector" id="designColorPickerSelector"></span>
+                  </div>
+                  <div class="design-color-picker-hue-bar" id="designColorPickerHueBar">
+                    <span class="design-color-picker-hue-handle" id="designColorPickerHueHandle"></span>
+                  </div>
+                  <div class="design-color-picker-hex-row">
+                    <input type="text" class="design-input design-color-picker-hex" id="designColorPickerHex" value="#362630" maxlength="7" placeholder="#362630" />
+                    <button type="button" class="design-color-picker-eyedropper" id="designColorPickerEyedropper" title="Alege culoare din pagină" aria-label="Pictogramă pipetă"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 22v-4l8-8 2 2-8 8h-2zm4 0v-2l4-4 2 2-4 4h-2zm12-16l-2 2 2 2 2-2-2-2zM9 3l2 2-5 5-2-2 5-5z"/></svg></button>
+                  </div>
+                  <p class="design-color-picker-suggested-label">Suggested</p>
+                  <div class="design-color-picker-suggested" id="designColorPickerSuggested">
+                    <button type="button" class="design-color-picker-swatch" data-hex="#362630" style="background:#362630" aria-label="Culoare #362630"></button>
+                    <button type="button" class="design-color-picker-swatch" data-hex="#0f766e" style="background:#0f766e" aria-label="Teal"></button>
+                    <button type="button" class="design-color-picker-swatch" data-hex="#1c1917" style="background:#1c1917" aria-label="Negru"></button>
+                  </div>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" class="primary" id="designColorPickerDone">Done</button>
+                </div>
+              </div>
+            </div>
+
             <section class="dashboard-panel" id="panelProfile">
               <h2>Profile</h2>
-              <p class="subtitle">Name, bio and your link.</p>
+              <p class="subtitle">Name, bio and your link. Poza de profil și titlul se editează în Design → Header.</p>
               <div class="profile-card profile-card-inline">
-                <div class="profile-avatar" id="dashboardAvatar" role="button" tabindex="0">
-                  <img class="avatar-preview" id="dashboardAvatarPreview" alt="" hidden />
-                  <span class="plus">+</span>
-                </div>
-                <input type="file" accept="image/*" id="dashboardAvatarInput" hidden />
                 <div class="profile-fields">
                   <label class="field"><span>Link name</span><input type="text" id="dashboardUsername" placeholder="your-username" maxlength="40" /></label>
                   <label class="field"><span>Display Name</span><input type="text" id="dashboardDisplayName" placeholder="Display name" maxlength="50" /></label>

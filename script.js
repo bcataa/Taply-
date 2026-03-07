@@ -89,7 +89,9 @@
     "discord",
     "telegram",
     "website",
+    "email",
   ];
+  const STRIP_ADD_PLATFORMS = ["instagram", "tiktok", "whatsapp", "email"];
 
   const platformLabels = {
     instagram: "Instagram",
@@ -108,6 +110,7 @@
     soundcloud: "SoundCloud",
     snapchat: "Snapchat",
     pinterest: "Pinterest",
+    email: "Email",
   };
 
   var SIMPLE_ICONS_CDN = "https://cdn.simpleicons.org";
@@ -124,6 +127,7 @@
     soundcloud: "soundcloud",
     snapchat: "snapchat",
     pinterest: "pinterest",
+    email: "gmail",
     steam: "steam",
     twitch: "twitch",
     discord: "discord",
@@ -144,6 +148,13 @@
     discord: "discord",
     telegram: "telegram",
     link: "link",
+    email: "gmail",
+    whatsapp: "whatsapp",
+    facebook: "facebook",
+    x: "x",
+    soundcloud: "soundcloud",
+    snapchat: "snapchat",
+    pinterest: "pinterest",
   };
   function linkLogoUrl(icon) {
     var slug = linkLogoSlug[icon];
@@ -169,6 +180,26 @@
       socialUrls: {},
       email: "",
       username: "",
+      design: {
+        headerLayout: "classic",
+        titleStyle: "text",
+        titleSize: "small",
+        alternativeTitleFont: false,
+        wallpaperStyle: "gradient",
+        gradientStyle: "premade",
+        gradientPreset: 2,
+        animateGradient: false,
+        noise: false,
+        buttonStyle: "solid",
+        cornerRoundness: "full",
+        buttonShadow: "soft",
+        buttonsColor: "#FFFFFF",
+        buttonTextColor: "#362630",
+        pageFont: "DM Sans",
+        pageTextColor: "#362630",
+        titleColor: "#362630",
+        titleLogoUrl: "",
+      },
     };
   }
 
@@ -190,6 +221,9 @@
     }
     if (profile && (!profile.socialLinks || profile.socialLinks.length === 0) && (profile.platforms || []).length > 0) {
       profile.socialLinks = (profile.platforms || []).map(function (key) { return { platform: key, url: (profile.socialUrls || {})[key] || "" }; });
+    }
+    if (profile && !profile.design) {
+      profile.design = defaultProfile().design;
     }
     return profile;
   }
@@ -405,7 +439,7 @@
   const sidebarUsername = document.getElementById("sidebarUsername");
   const sidebarAvatarImg = document.getElementById("sidebarAvatarImg");
   const linksStripAvatarImg = document.getElementById("linksStripAvatarImg");
-  const linksStripSocial = document.getElementById("linksStripSocial");
+  const linksUsername = document.getElementById("linksUsername");
 
   function showView(which) {
     viewUsername.hidden = which !== "username";
@@ -571,10 +605,149 @@
     });
   }
 
+  var editProfileUrlModal = document.getElementById("editProfileUrlModal");
+  var editProfileUrlInput = document.getElementById("editProfileUrlInput");
+  var editProfileUrlPlatform = document.getElementById("editProfileUrlPlatform");
+  var editProfileUrlSave = document.getElementById("editProfileUrlSave");
+  var editProfileUrlCancel = document.getElementById("editProfileUrlCancel");
+  var addProfileModal = document.getElementById("addProfileModal");
+  var addProfileGrid = document.getElementById("addProfileGrid");
+  var addProfileModalClose = document.getElementById("addProfileModalClose");
+
+  function openEditProfileModal(platformKey) {
+    var p = getProfile();
+    var entry = (p.socialLinks || []).find(function (e) { return (e.platform || "") === platformKey; });
+    if (!entry) return;
+    if (editProfileUrlPlatform) editProfileUrlPlatform.value = platformLabels[platformKey] || platformKey;
+    if (editProfileUrlInput) editProfileUrlInput.value = entry.url || "";
+    if (editProfileUrlModal) {
+      editProfileUrlModal.dataset.editPlatform = platformKey;
+      editProfileUrlModal.hidden = false;
+      document.body.style.overflow = "hidden";
+      if (editProfileUrlInput) setTimeout(function () { editProfileUrlInput.focus(); }, 80);
+    }
+  }
+  function closeEditProfileModal() {
+    if (editProfileUrlModal) {
+      editProfileUrlModal.hidden = true;
+      document.body.style.overflow = "";
+      editProfileUrlModal.removeAttribute("data-edit-platform");
+    }
+  }
+  function openAddProfileModal() {
+    if (!addProfileGrid) return;
+    addProfileGrid.innerHTML = "";
+    var socialList = (getProfile() || {}).socialLinks || [];
+    var added = socialList.map(function (e) { return e.platform || ""; });
+    PLATFORMS.forEach(function (key) {
+      if (STRIP_ADD_PLATFORMS.indexOf(key) !== -1) return;
+      var already = added.indexOf(key) !== -1;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "add-suggested-circle" + (already ? " is-added" : "");
+      btn.setAttribute("aria-label", (platformLabels[key] || key) + (already ? " (already added)" : ""));
+      var logoUrl = platformLogoUrl(key);
+      if (logoUrl) btn.innerHTML = '<img src="' + logoUrl + '" alt="" class="add-suggested-circle-logo" loading="lazy" />';
+      else btn.innerHTML = '<span class="add-suggested-circle-emoji">' + (platformLabels[key] || key).charAt(0) + '</span>';
+      if (already) return;
+      btn.addEventListener("click", function () {
+        var pr = getProfile();
+        pr.socialLinks = pr.socialLinks || [];
+        if (pr.socialLinks.length >= MAX_SOCIAL_LINKS) return;
+        pr.socialLinks.push({ platform: key, url: "" });
+        saveProfile(pr);
+        closeAddProfileModal();
+        renderLinksStripAddIcons();
+        renderSocialUrls(pr.socialLinks.length - 1);
+        liveRefreshPreview();
+      });
+      addProfileGrid.appendChild(btn);
+    });
+    if (addProfileModal) {
+      addProfileModal.hidden = false;
+      document.body.style.overflow = "hidden";
+    }
+  }
+  function closeAddProfileModal() {
+    if (addProfileModal) {
+      addProfileModal.hidden = true;
+      document.body.style.overflow = "";
+    }
+  }
+
+  function renderLinksStripAddIcons() {
+    var container = document.getElementById("linksStripAddIcons");
+    if (!container) return;
+    var profile = getProfile();
+    if (!profile) return;
+    var socialList = profile.socialLinks || [];
+    container.innerHTML = "";
+    function makeStripBtn(platformKey, isGenericPlus, alreadyAdded) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "links-strip-add-btn" + (isGenericPlus ? " links-strip-add-plus" : "") + (alreadyAdded ? " links-strip-add-has" : "");
+      var label = isGenericPlus ? "Add profile" : (alreadyAdded ? "Edit or remove " + (platformLabels[platformKey] || platformKey) : "Add " + (platformLabels[platformKey] || platformKey));
+      btn.setAttribute("aria-label", label);
+      var badgeChar = isGenericPlus ? "+" : (alreadyAdded ? "−" : "+");
+      if (isGenericPlus) {
+        btn.innerHTML = '<span class="links-strip-add-icon">+</span><span class="links-strip-add-badge">+</span>';
+      } else {
+        var logoUrl = platformLogoUrl(platformKey);
+        btn.dataset.platform = platformKey;
+        if (logoUrl) {
+          btn.innerHTML = '<img src="' + logoUrl + '" alt="" class="links-strip-add-logo" loading="lazy" /><span class="links-strip-add-badge">' + badgeChar + '</span>';
+        } else {
+          btn.innerHTML = '<span class="links-strip-add-icon">' + (platformLabels[platformKey] || platformKey).charAt(0) + '</span><span class="links-strip-add-badge">' + badgeChar + '</span>';
+        }
+      }
+      return btn;
+    }
+    STRIP_ADD_PLATFORMS.forEach(function (key) {
+      var alreadyAdded = socialList.some(function (e) { return (e.platform || "") === key; });
+      var btn = makeStripBtn(key, false, alreadyAdded);
+      btn.addEventListener("click", function (e) {
+        var target = e.target;
+        var isBadge = target.classList && target.classList.contains("links-strip-add-badge");
+        if (alreadyAdded) {
+          if (isBadge) {
+            var p = getProfile();
+            p.socialLinks = (p.socialLinks || []).filter(function (el) { return (el.platform || "") !== key; });
+            saveProfile(p);
+            renderLinksStripAddIcons();
+            renderSocialUrls();
+            liveRefreshPreview();
+          } else {
+            openEditProfileModal(key);
+          }
+          return;
+        }
+        var p = getProfile();
+        p.socialLinks = p.socialLinks || [];
+        if (p.socialLinks.length >= MAX_SOCIAL_LINKS) return;
+        p.socialLinks.push({ platform: key, url: "" });
+        var newIndex = p.socialLinks.length - 1;
+        var promise = saveProfile(p);
+        renderLinksStripAddIcons();
+        renderSocialUrls(newIndex);
+        if (promise && promise.then) promise.then(function () { refreshPreview(); }).catch(function () {});
+        else liveRefreshPreview();
+      });
+      container.appendChild(btn);
+    });
+    for (var i = 0; i < 2; i++) {
+      var plusBtn = makeStripBtn(null, true, false);
+      plusBtn.addEventListener("click", function () {
+        openAddProfileModal();
+      });
+      container.appendChild(plusBtn);
+    }
+  }
+
   function renderDashboardPlatforms() {
     const profile = getProfile();
     if (!profile) return;
     var list = profile.socialLinks || [];
+    if (!dashboardPlatforms) return;
     dashboardPlatforms.innerHTML = "";
     PLATFORMS.forEach((key) => {
       const btn = document.createElement("button");
@@ -609,56 +782,82 @@
     renderSocialUrls();
   }
 
+  if (editProfileUrlSave) editProfileUrlSave.addEventListener("click", function () {
+    var platformKey = editProfileUrlModal && editProfileUrlModal.dataset.editPlatform;
+    if (!platformKey || !editProfileUrlInput) return;
+    var p = getProfile();
+    var entry = (p.socialLinks || []).find(function (e) { return (e.platform || "") === platformKey; });
+    if (entry) {
+      entry.url = editProfileUrlInput.value.trim();
+      saveProfile(p);
+      renderSocialUrls();
+      liveRefreshPreview();
+    }
+    closeEditProfileModal();
+  });
+  if (editProfileUrlCancel) editProfileUrlCancel.addEventListener("click", closeEditProfileModal);
+  if (document.getElementById("editProfileUrlModalClose")) document.getElementById("editProfileUrlModalClose").addEventListener("click", closeEditProfileModal);
+  if (editProfileUrlModal) editProfileUrlModal.addEventListener("click", function (e) { if (e.target === editProfileUrlModal) closeEditProfileModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && editProfileUrlModal && !editProfileUrlModal.hidden) closeEditProfileModal(); });
+  if (addProfileModalClose) addProfileModalClose.addEventListener("click", closeAddProfileModal);
+  if (addProfileModal) addProfileModal.addEventListener("click", function (e) { if (e.target === addProfileModal) closeAddProfileModal(); });
+
   var socialUrlInputDebounce = {};
-  function renderSocialUrls() {
+  function renderSocialUrls(focusIndex) {
     const profile = getProfile();
     if (!profile) return;
     var links = profile.socialLinks || [];
     var labelEl = document.getElementById("socialUrlsLabel");
     if (labelEl) labelEl.hidden = links.length === 0;
     socialUrls.innerHTML = "";
-    if (links.length === 0) return;
+    if (links.length === 0) {
+      var emptyP = document.createElement("p");
+      emptyP.className = "profile-urls-empty";
+      emptyP.textContent = "No profile URLs yet. Click + on an icon above to add one.";
+      socialUrls.appendChild(emptyP);
+      return;
+    }
     const wrap = document.createElement("div");
-    wrap.className = "social-urls-grid";
+    wrap.className = "social-url-cards";
     links.forEach((entry, index) => {
       var key = entry.platform || "website";
       var platformName = platformLabels[key] || key;
-      const row = document.createElement("div");
-      row.className = "social-url-row";
-      row.draggable = true;
-      row.dataset.index = String(index);
-      const labelWrap = document.createElement("div");
-      labelWrap.className = "social-url-row-label-wrap";
-      const handle = document.createElement("span");
-      handle.className = "social-url-drag-handle";
-      handle.innerHTML = "⋮⋮";
-      handle.setAttribute("aria-label", "Reorder");
-      row.appendChild(handle);
-      const icon = document.createElement("span");
-      icon.className = "social-url-icon";
-      icon.setAttribute("aria-hidden", "true");
+      const card = document.createElement("div");
+      card.className = "link-card social-url-card social-url-row";
+      card.draggable = true;
+      card.dataset.index = String(index);
       var logoUrl = platformLogoUrl(key);
-      if (logoUrl) {
-        var img = document.createElement("img");
-        img.src = logoUrl;
-        img.alt = "";
-        img.className = "social-url-logo";
-        img.setAttribute("loading", "lazy");
-        icon.appendChild(img);
-      } else {
-        icon.textContent = platformName.charAt(0);
-      }
-      const rowLabel = document.createElement("span");
-      rowLabel.className = "social-url-row-label";
-      rowLabel.textContent = platformName + " – Profile URL";
-      labelWrap.appendChild(icon);
-      labelWrap.appendChild(rowLabel);
-      row.appendChild(labelWrap);
-      const input = document.createElement("input");
+      var iconHtml = logoUrl
+        ? '<img src="' + logoUrl + '" alt="" class="social-url-card-logo" loading="lazy" />'
+        : '<span class="social-url-card-letter">' + platformName.charAt(0) + '</span>';
+      card.innerHTML =
+        '<div class="link-card-inner">' +
+          '<div class="link-card-left">' +
+            '<button type="button" class="link-card-handle" aria-label="Drag to reorder" title="Drag to reorder">⋮⋮</button>' +
+            '<div class="link-card-body">' +
+              '<div class="link-card-title-row">' +
+                '<span class="link-card-title">' + platformName + ' – Profile URL</span>' +
+                '<button type="button" class="link-card-edit social-url-edit-title" title="Edit">✎</button>' +
+              '</div>' +
+              '<div class="link-card-url-row">' +
+                '<span class="link-card-url-text">URL</span>' +
+                '<button type="button" class="link-card-edit social-url-edit-url" title="Edit URL">✎</button>' +
+              '</div>' +
+              '<div class="social-url-card-icon-row">' + iconHtml + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="link-card-right">' +
+            '<button type="button" class="btn-delete-card social-url-remove" title="Delete">🗑</button>' +
+          '</div>' +
+        '</div>';
+      var input = document.createElement("input");
       input.type = "url";
       input.placeholder = "https://...";
       input.value = entry.url || "";
+      input.className = "social-url-card-input";
       input.setAttribute("aria-label", "URL " + platformName);
+      var urlRow = card.querySelector(".link-card-url-row");
+      urlRow.insertBefore(input, urlRow.querySelector(".social-url-edit-url"));
       function saveThisUrl() {
         var p = getProfile();
         if ((p.socialLinks || [])[index]) p.socialLinks[index].url = input.value.trim();
@@ -674,25 +873,28 @@
         clearTimeout(socialUrlInputDebounce[index]);
         socialUrlInputDebounce[index] = setTimeout(saveThisUrl, 700);
       });
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.className = "social-url-remove";
-      removeBtn.innerHTML = "×";
-      removeBtn.setAttribute("aria-label", "Remove " + platformName);
-      removeBtn.addEventListener("click", () => {
-        const p = getProfile();
-        p.socialLinks = (p.socialLinks || []).filter((_, i) => i !== index);
+      card.querySelector(".social-url-edit-title").addEventListener("click", function () { input.focus(); });
+      card.querySelector(".social-url-edit-url").addEventListener("click", function () { input.focus(); });
+      card.querySelector(".social-url-remove").addEventListener("click", function () {
+        var p = getProfile();
+        p.socialLinks = (p.socialLinks || []).filter(function (_, i) { return i !== index; });
         var promise = saveProfile(p);
+        renderLinksStripAddIcons();
         renderSocialUrls();
         if (promise && promise.then) promise.then(function () { refreshPreview(); }).catch(function () {});
         else liveRefreshPreview();
       });
-      row.appendChild(input);
-      row.appendChild(removeBtn);
-      wrap.appendChild(row);
+      wrap.appendChild(card);
     });
     socialUrls.appendChild(wrap);
     setupSocialUrlsDragDrop(socialUrls);
+    if (typeof focusIndex === "number" && focusIndex >= 0 && focusIndex < links.length) {
+      setTimeout(function () {
+        var card = wrap.querySelectorAll(".social-url-card")[focusIndex];
+        var input = card && card.querySelector(".social-url-card-input");
+        if (input) input.focus();
+      }, 100);
+    }
   }
 
   function setupSocialUrlsDragDrop(container) {
@@ -927,15 +1129,8 @@
       linksStripAvatarImg.src = profile.avatar;
       linksStripAvatarImg.hidden = false;
     }
-    if (linksStripSocial) {
-      var sl = profile.socialLinks || [];
-      if (sl.length === 0 && (profile.platforms || []).length > 0) {
-        sl = (profile.platforms || []).slice(0, 5).map(function (key) { return { platform: key, url: "" }; });
-      }
-      linksStripSocial.innerHTML = sl.slice(0, 5).map(function (entry) {
-        var url = platformLogoUrl(entry.platform || "website");
-        return url ? '<img src="' + url + '" alt="" class="links-strip-logo" loading="lazy" />' : '<span></span>';
-      }).join("");
+    if (linksUsername) {
+      linksUsername.textContent = profile.displayName || profile.username || "—";
     }
     var completed = 0;
     if (profile.displayName) completed++;
@@ -1017,19 +1212,481 @@
     dashboardBio.value = profile.bio || "";
     dashboardBioCounter.textContent = (profile.bio || "").length + "/160";
     updateProfileLinkUrl();
-    if (profile.avatar) {
-      dashboardAvatarPreview.src = profile.avatar;
-      dashboardAvatarPreview.hidden = false;
-      dashboardAvatar.querySelector(".plus").style.display = "none";
-    } else {
-      dashboardAvatarPreview.hidden = true;
-      dashboardAvatar.querySelector(".plus").style.display = "";
+    if (dashboardAvatarPreview && dashboardAvatar) {
+      if (profile.avatar) {
+        dashboardAvatarPreview.src = profile.avatar;
+        dashboardAvatarPreview.hidden = false;
+        dashboardAvatar.querySelector(".plus").style.display = "none";
+      } else {
+        dashboardAvatarPreview.hidden = true;
+        dashboardAvatar.querySelector(".plus").style.display = "";
+      }
     }
 
     renderDashboardThemes();
-    renderDashboardPlatforms();
+    renderLinksStripAddIcons();
+    renderSocialUrls();
     renderLinkList();
     renderAnalytics();
+    initDesignPanel();
+
+    function initDesignPanel() {
+      var designIntro = document.getElementById("designIntro");
+      var designIntroMain = document.querySelector(".design-intro-main");
+      var designThemePreview = document.getElementById("designThemePreview");
+      var designThemeGridWrap = document.querySelector(".design-theme-grid-wrap");
+      var designSaveBtn = document.querySelector(".design-save-btn");
+      var designHeaderValue = document.getElementById("designHeaderValue");
+      var designWallpaperValue = document.getElementById("designWallpaperValue");
+      var designButtonsValue = document.getElementById("designButtonsValue");
+      var designTextValue = document.getElementById("designTextValue");
+      var GRADIENT_PRESETS = [
+        "linear-gradient(135deg,#ec4899,#f97316)",
+        "linear-gradient(135deg,#f97316,#eab308)",
+        "linear-gradient(135deg,#84cc16,#eab308)",
+        "linear-gradient(135deg,#22c55e,#3b82f6)",
+        "linear-gradient(135deg,#6366f1,#1e3a8a)",
+        "linear-gradient(135deg,#1e3a8a,#6366f1)",
+        "linear-gradient(135deg,#38bdf8,#f97316)",
+        "linear-gradient(135deg,#f97316,#ef4444)",
+      ];
+      function showDesignIntro() {
+        if (designIntro) designIntro.hidden = false;
+        if (designIntroMain) designIntroMain.hidden = false;
+        document.querySelectorAll(".design-subpanel").forEach(function (p) { p.hidden = true; });
+        if (designThemeGridWrap) designThemeGridWrap.hidden = true;
+      }
+      function showDesignSubpanel(id) {
+        if (designIntro) designIntro.hidden = true;
+        document.querySelectorAll(".design-subpanel").forEach(function (p) { p.hidden = p.id !== id; });
+        var panel = document.getElementById(id);
+        if (panel) syncDesignPanelFromProfile(panel.id);
+      }
+      function syncDesignPanelFromProfile(panelId) {
+        var p = getProfile();
+        if (!p || !p.design) return;
+        var d = p.design;
+        if (panelId === "designPanelHeader") {
+          var headerAvatarImg = document.getElementById("designHeaderAvatarImg");
+          if (headerAvatarImg) {
+            if (p.avatar) { headerAvatarImg.src = p.avatar; headerAvatarImg.hidden = false; }
+            else { headerAvatarImg.removeAttribute("src"); headerAvatarImg.hidden = true; }
+          }
+          var titleInput = document.getElementById("designTitleInput");
+          if (titleInput) titleInput.value = p.displayName || "";
+          var altFont = document.getElementById("designAlternativeTitleFont");
+          if (altFont) altFont.checked = !!d.alternativeTitleFont;
+          setOptionSelected("headerLayout", d.headerLayout);
+          setOptionSelected("titleStyle", d.titleStyle);
+          setOptionSelected("titleSize", d.titleSize);
+          var logoField = document.getElementById("designFieldLogoUrl");
+          var logoUrlInput = document.getElementById("designTitleLogoUrl");
+          if (logoUrlInput) {
+            if (d.titleLogoUrl && d.titleLogoUrl.startsWith("data:")) {
+              logoUrlInput.value = "";
+              logoUrlInput.placeholder = "Imagine încărcată";
+            } else {
+              logoUrlInput.value = d.titleLogoUrl || "";
+              logoUrlInput.placeholder = "Opțional: URL";
+            }
+          }
+          if (logoField) logoField.hidden = d.titleStyle !== "logo";
+          var logoPreview = document.getElementById("designLogoPreview");
+          if (logoPreview) {
+            if (d.titleLogoUrl) { logoPreview.src = d.titleLogoUrl; logoPreview.hidden = false; }
+            else { logoPreview.removeAttribute("src"); logoPreview.hidden = true; }
+          }
+          setColorInput("designTitleColor", "designTitleColorSwatch", d.titleColor);
+        } else if (panelId === "designPanelWallpaper") {
+          setOptionSelected("wallpaperStyle", d.wallpaperStyle);
+          setOptionSelected("gradientStyle", d.gradientStyle);
+          var animate = document.getElementById("designAnimateGradient");
+          if (animate) animate.checked = !!d.animateGradient;
+          var noise = document.getElementById("designNoise");
+          if (noise) noise.checked = !!d.noise;
+          renderGradientPresets();
+        } else if (panelId === "designPanelButtons") {
+          setOptionSelected("buttonStyle", d.buttonStyle);
+          setOptionSelected("cornerRoundness", d.cornerRoundness);
+          setOptionSelected("buttonShadow", d.buttonShadow);
+          setColorInput("designButtonsColor", "designButtonsColorSwatch", d.buttonsColor);
+          setColorInput("designButtonTextColor", "designButtonTextColorSwatch", d.buttonTextColor);
+        } else if (panelId === "designPanelText") {
+          var pageFont = document.getElementById("designPageFont");
+          if (pageFont) pageFont.value = d.pageFont || "DM Sans";
+          setColorInput("designPageTextColor", "designPageTextColorSwatch", d.pageTextColor);
+          var altTitle = document.getElementById("designAltTitleFontText");
+          if (altTitle) altTitle.checked = !!d.alternativeTitleFont;
+          setOptionSelected("titleSize", d.titleSize);
+        } else if (panelId === "designPanelColors") {
+          setColorInput("designColorsButtons", "designColorsButtonsSwatch", d.buttonsColor || "#D14646");
+          setColorInput("designColorsButtonText", "designColorsButtonTextSwatch", d.buttonTextColor || "#E40390");
+          setColorInput("designColorsPageText", "designColorsPageTextSwatch", d.pageTextColor || "#362630");
+          setColorInput("designColorsTitleText", "designColorsTitleTextSwatch", d.titleColor || "#362630");
+        }
+      }
+      function setOptionSelected(optionName, value) {
+        document.querySelectorAll(".design-option-btn[data-option=\"" + optionName + "\"], .design-option-tile[data-option=\"" + optionName + "\"]").forEach(function (btn) {
+          btn.classList.toggle("is-selected", (btn.dataset.value || "") === (value || ""));
+        });
+      }
+      function setColorInput(inputId, swatchId, hex) {
+        var input = document.getElementById(inputId);
+        var swatch = document.getElementById(swatchId);
+        if (input) input.value = hex || "#000000";
+        if (swatch) swatch.style.background = hex || "#000000";
+      }
+      function applyDesignOption(optionName, value) {
+        var p = getProfile();
+        if (!p) return;
+        p.design = p.design || defaultProfile().design;
+        p.design[optionName] = value;
+        saveProfile(p);
+        updateDesignRowValues();
+        liveRefreshPreview();
+      }
+      function updateDesignRowValues() {
+        var p = getProfile();
+        if (!p || !p.design) return;
+        var d = p.design;
+        if (designHeaderValue) designHeaderValue.textContent = d.headerLayout === "hero" ? "Hero" : "Classic";
+        if (designWallpaperValue) designWallpaperValue.textContent = (d.wallpaperStyle || "gradient").charAt(0).toUpperCase() + (d.wallpaperStyle || "gradient").slice(1);
+        if (designButtonsValue) designButtonsValue.textContent = d.buttonStyle === "solid" ? "Fill" : (d.buttonStyle === "glass" ? "Glass" : "Outline");
+        if (designTextValue) designTextValue.textContent = d.pageFont || "DM Sans";
+      }
+      function renderGradientPresets() {
+        var wrap = document.getElementById("designGradientPresets");
+        if (!wrap) return;
+        wrap.innerHTML = "";
+        var p = getProfile();
+        var selected = (p && p.design && typeof p.design.gradientPreset === "number") ? p.design.gradientPreset : 2;
+        GRADIENT_PRESETS.forEach(function (grad, i) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "design-gradient-preset" + (i === selected ? " is-selected" : "");
+          btn.style.background = grad;
+          btn.addEventListener("click", function () {
+            var pr = getProfile();
+            if (pr && pr.design) {
+              pr.design.gradientPreset = i;
+              saveProfile(pr);
+              renderGradientPresets();
+              liveRefreshPreview();
+            }
+          });
+          wrap.appendChild(btn);
+        });
+      }
+      document.querySelectorAll(".design-customize-row").forEach(function (row) {
+        row.addEventListener("click", function () {
+          var panelId = row.dataset.panel;
+          if (!panelId) return;
+          var subpanelId = "designPanel" + panelId.charAt(0).toUpperCase() + panelId.slice(1);
+          showDesignSubpanel(subpanelId);
+        });
+      });
+      var designHeaderAddBtn = document.getElementById("designHeaderAddAvatarBtn");
+      var profileImageModal = document.getElementById("profileImageModal");
+      var profileImageModalClose = document.getElementById("profileImageModalClose");
+      var profileImageFileInput = document.getElementById("profileImageFileInput");
+      if (designHeaderAddBtn && profileImageModal) {
+        designHeaderAddBtn.addEventListener("click", function () { profileImageModal.hidden = false; });
+      }
+      if (profileImageModalClose && profileImageModal) {
+        profileImageModalClose.addEventListener("click", function () { profileImageModal.hidden = true; });
+      }
+      profileImageModal && profileImageModal.addEventListener("click", function (e) { if (e.target === profileImageModal) profileImageModal.hidden = true; });
+      var profileImageOptionFile = document.getElementById("profileImageOptionFile");
+      if (profileImageOptionFile && profileImageFileInput) {
+        profileImageOptionFile.addEventListener("click", function () { profileImageFileInput.click(); });
+      }
+      ["profileImageOptionVideo", "profileImageOptionAI", "profileImageOptionCanva"].forEach(function (id) {
+        var btn = document.getElementById(id);
+        if (btn && profileImageModal) btn.addEventListener("click", function () { profileImageModal.hidden = true; });
+      });
+      if (profileImageFileInput) {
+        profileImageFileInput.addEventListener("change", function () {
+          var file = profileImageFileInput.files && profileImageFileInput.files[0];
+          if (!file || (!file.type.startsWith("image/") && file.type !== "image/gif")) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var p = getProfile();
+            if (p) {
+              p.avatar = reader.result;
+              saveProfile(p);
+              var headerAvatarImg = document.getElementById("designHeaderAvatarImg");
+              if (headerAvatarImg) { headerAvatarImg.src = reader.result; headerAvatarImg.hidden = false; }
+              if (profileImageModal) profileImageModal.hidden = true;
+              liveRefreshPreview();
+            }
+          };
+          reader.readAsDataURL(file);
+          profileImageFileInput.value = "";
+        });
+      }
+      document.querySelectorAll(".design-back-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          showDesignIntro();
+          updateDesignRowValues();
+        });
+      });
+      document.querySelectorAll(".design-option-btn, .design-option-tile").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var opt = btn.dataset.option;
+          var val = btn.dataset.value;
+          if (!opt || !val) return;
+          var parent = btn.closest(".design-subpanel-body");
+          if (parent) parent.querySelectorAll(".design-option-btn[data-option=\"" + opt + "\"], .design-option-tile[data-option=\"" + opt + "\"]").forEach(function (b) { b.classList.remove("is-selected"); });
+          btn.classList.add("is-selected");
+          applyDesignOption(opt, val);
+          if (opt === "titleStyle") {
+            var logoField = document.getElementById("designFieldLogoUrl");
+            if (logoField) logoField.hidden = val !== "logo";
+          }
+        });
+      });
+      document.querySelectorAll(".design-color-input").forEach(function (input) {
+        input.addEventListener("input", function () {
+          var hex = input.value.trim();
+          var swatchId = input.id + "Swatch";
+          if (input.id === "designButtonsColor") swatchId = "designButtonsColorSwatch";
+          else if (input.id === "designButtonTextColor") swatchId = "designButtonTextColorSwatch";
+          else if (input.id === "designPageTextColor") swatchId = "designPageTextColorSwatch";
+          else if (input.id === "designTitleColor") swatchId = "designTitleColorSwatch";
+          else if (input.id === "designColorsButtons") swatchId = "designColorsButtonsSwatch";
+          else if (input.id === "designColorsButtonText") swatchId = "designColorsButtonTextSwatch";
+          else if (input.id === "designColorsPageText") swatchId = "designColorsPageTextSwatch";
+          else if (input.id === "designColorsTitleText") swatchId = "designColorsTitleTextSwatch";
+          var swatch = document.getElementById(swatchId);
+          if (swatch) swatch.style.background = hex || "#000";
+          var p = getProfile();
+          if (!p || !p.design) return;
+          p.design = p.design || defaultProfile().design;
+          if (input.id === "designButtonsColor" || input.id === "designColorsButtons") p.design.buttonsColor = hex;
+          else if (input.id === "designButtonTextColor" || input.id === "designColorsButtonText") p.design.buttonTextColor = hex;
+          else if (input.id === "designPageTextColor" || input.id === "designColorsPageText") p.design.pageTextColor = hex;
+          else if (input.id === "designTitleColor" || input.id === "designColorsTitleText") p.design.titleColor = hex;
+          saveProfile(p);
+          liveRefreshPreview();
+        });
+      });
+      var designTitleInput = document.getElementById("designTitleInput");
+      if (designTitleInput) designTitleInput.addEventListener("input", function () {
+        var p = getProfile();
+        if (p) { p.displayName = designTitleInput.value; saveProfile(p); liveRefreshPreview(); }
+      });
+      var designTitleLogoUrl = document.getElementById("designTitleLogoUrl");
+      if (designTitleLogoUrl) designTitleLogoUrl.addEventListener("input", function () {
+        var p = getProfile();
+        if (p && p.design) { p.design.titleLogoUrl = designTitleLogoUrl.value.trim(); saveProfile(p); liveRefreshPreview(); }
+        var logoPreview = document.getElementById("designLogoPreview");
+        if (logoPreview) {
+          var v = designTitleLogoUrl.value.trim();
+          if (v) { logoPreview.src = v; logoPreview.hidden = false; } else { logoPreview.removeAttribute("src"); logoPreview.hidden = true; }
+        }
+      });
+      var designTitleLogoFile = document.getElementById("designTitleLogoFile");
+      var designUploadLogoBtn = document.getElementById("designUploadLogoBtn");
+      if (designUploadLogoBtn && designTitleLogoFile) {
+        designUploadLogoBtn.addEventListener("click", function () { designTitleLogoFile.click(); });
+        designTitleLogoFile.addEventListener("change", function () {
+          var file = designTitleLogoFile.files && designTitleLogoFile.files[0];
+          if (!file || !file.type.startsWith("image/")) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var p = getProfile();
+            if (p && p.design) {
+              p.design.titleLogoUrl = reader.result;
+              saveProfile(p);
+              if (designTitleLogoUrl) {
+                designTitleLogoUrl.value = "";
+                designTitleLogoUrl.placeholder = "Imagine încărcată";
+              }
+              var logoPreview = document.getElementById("designLogoPreview");
+              if (logoPreview) { logoPreview.src = reader.result; logoPreview.hidden = false; }
+              liveRefreshPreview();
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      (function () {
+        var colorModal = document.getElementById("designColorPickerModal");
+        var colorBox = document.getElementById("designColorPickerBox");
+        var colorGradient = document.getElementById("designColorPickerGradient");
+        var colorSelector = document.getElementById("designColorPickerSelector");
+        var colorHueBar = document.getElementById("designColorPickerHueBar");
+        var colorHueHandle = document.getElementById("designColorPickerHueHandle");
+        var colorHex = document.getElementById("designColorPickerHex");
+        var colorEyedropper = document.getElementById("designColorPickerEyedropper");
+        var colorDone = document.getElementById("designColorPickerDone");
+        var titleColorInput = document.getElementById("designTitleColor");
+        var titleColorSwatch = document.getElementById("designTitleColorSwatch");
+        function hexFromInput(h) {
+          h = (h || "").trim();
+          if (/^#[0-9A-Fa-f]{6}$/.test(h)) return h;
+          if (/^[0-9A-Fa-f]{6}$/.test(h)) return "#" + h;
+          return "#362630";
+        }
+        function hexToRgb(hex) {
+          var n = parseInt(hex.slice(1), 16);
+          return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+        }
+        function rgbToHex(r, g, b) {
+          return "#" + [r, g, b].map(function (x) { x = Math.round(Math.max(0, Math.min(255, x))); return (x < 16 ? "0" : "") + x.toString(16); }).join("");
+        }
+        function rgbToHsv(r, g, b) {
+          r /= 255; g /= 255; b /= 255;
+          var max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, h, s = max === 0 ? 0 : d / max, v = max;
+          if (d === 0) h = 0;
+          else if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          else if (max === g) h = ((b - r) / d + 2) / 6;
+          else h = ((r - g) / d + 4) / 6;
+          return { h: h * 360, s: s, v: v };
+        }
+        function hsvToRgb(h, s, v) {
+          var i = Math.floor(h / 60) % 6, f = h / 60 - i, p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+          var r = [v, q, p, p, t, v][i], g = [t, v, v, q, p, p][i], b = [p, p, t, v, v, q][i];
+          return { r: r * 255, g: g * 255, b: b * 255 };
+        }
+        var pickerState = { h: 330, s: 0.2, v: 0.2 };
+        function setPickerFromHex(hex) {
+          hex = hexFromInput(hex);
+          var rgb = hexToRgb(hex);
+          var hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+          pickerState.h = hsv.h; pickerState.s = hsv.s; pickerState.v = hsv.v;
+          if (colorGradient) colorGradient.style.setProperty("--picker-hue", Math.round(pickerState.h));
+          if (colorSelector) {
+            colorSelector.style.left = (pickerState.s * 100) + "%";
+            colorSelector.style.top = ((1 - pickerState.v) * 100) + "%";
+          }
+          if (colorHueHandle) colorHueHandle.style.left = (pickerState.h / 360 * 100) + "%";
+          if (colorHex) colorHex.value = hex;
+        }
+        function setPickerFromHSV() {
+          var rgb = hsvToRgb(pickerState.h, pickerState.s, pickerState.v);
+          var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+          if (colorHex) colorHex.value = hex;
+        }
+        function openTitleColorPicker() {
+          var hex = hexFromInput(titleColorInput && titleColorInput.value);
+          setPickerFromHex(hex);
+          if (colorModal) colorModal.hidden = false;
+        }
+        function applyPickerColor(hex) {
+          setPickerFromHex(hex);
+        }
+        function closeAndApplyTitleColor() {
+          var hex = colorHex && hexFromInput(colorHex.value);
+          if (hex && titleColorInput) titleColorInput.value = hex;
+          if (hex && titleColorSwatch) titleColorSwatch.style.background = hex;
+          var p = getProfile();
+          if (p && p.design && hex) { p.design.titleColor = hex; saveProfile(p); liveRefreshPreview(); }
+          if (colorModal) colorModal.hidden = true;
+        }
+        function dragGradient(e) {
+          if (!colorGradient || !colorSelector) return;
+          var rect = colorGradient.getBoundingClientRect();
+          var x = (e.clientX - rect.left) / rect.width;
+          var y = (e.clientY - rect.top) / rect.height;
+          x = Math.max(0, Math.min(1, x));
+          y = Math.max(0, Math.min(1, y));
+          pickerState.s = x;
+          pickerState.v = 1 - y;
+          colorSelector.style.left = (x * 100) + "%";
+          colorSelector.style.top = (y * 100) + "%";
+          setPickerFromHSV();
+        }
+        function dragHue(e) {
+          if (!colorHueBar || !colorHueHandle) return;
+          var rect = colorHueBar.getBoundingClientRect();
+          var x = (e.clientX - rect.left) / rect.width;
+          x = Math.max(0, Math.min(1, x));
+          pickerState.h = x * 360;
+          colorGradient.style.setProperty("--picker-hue", Math.round(pickerState.h));
+          colorHueHandle.style.left = (x * 100) + "%";
+          setPickerFromHSV();
+        }
+        if (colorGradient) {
+          colorGradient.addEventListener("mousedown", function (e) { e.preventDefault(); dragGradient(e); var up = function () { document.removeEventListener("mousemove", dragGradient); document.removeEventListener("mouseup", up); }; document.addEventListener("mousemove", dragGradient); document.addEventListener("mouseup", up); });
+          colorGradient.addEventListener("touchstart", function (e) { e.preventDefault(); var t = e.touches[0]; dragGradient({ clientX: t.clientX, clientY: t.clientY }); var move = function (ev) { if (ev.touches[0]) dragGradient({ clientX: ev.touches[0].clientX, clientY: ev.touches[0].clientY }); }; var end = function () { colorGradient.removeEventListener("touchmove", move); colorGradient.removeEventListener("touchend", end); }; colorGradient.addEventListener("touchmove", move, { passive: false }); colorGradient.addEventListener("touchend", end); });
+        }
+        if (colorHueBar) {
+          colorHueBar.addEventListener("mousedown", function (e) { e.preventDefault(); dragHue(e); var up = function () { document.removeEventListener("mousemove", dragHue); document.removeEventListener("mouseup", up); }; document.addEventListener("mousemove", dragHue); document.addEventListener("mouseup", up); });
+          colorHueBar.addEventListener("touchstart", function (e) { e.preventDefault(); var t = e.touches[0]; dragHue({ clientX: t.clientX }); var move = function (ev) { if (ev.touches[0]) dragHue({ clientX: ev.touches[0].clientX }); }; var end = function () { colorHueBar.removeEventListener("touchmove", move); colorHueBar.removeEventListener("touchend", end); }; colorHueBar.addEventListener("touchmove", move, { passive: false }); colorHueBar.addEventListener("touchend", end); });
+        }
+        if (colorHex) colorHex.addEventListener("input", function () { setPickerFromHex(colorHex.value); });
+        if (colorEyedropper && window.EyeDropper) {
+          colorEyedropper.style.display = "";
+          colorEyedropper.addEventListener("click", function () {
+            (new window.EyeDropper()).open().then(function (r) { setPickerFromHex(r.sRGBHex || r.sHex || "#362630"); }).catch(function () {});
+          });
+        } else if (colorEyedropper) colorEyedropper.style.display = "none";
+        if (titleColorSwatch) titleColorSwatch.addEventListener("click", openTitleColorPicker);
+        if (titleColorInput) titleColorInput.addEventListener("click", openTitleColorPicker);
+        var triggerWrap = document.querySelector(".design-color-picker-trigger-wrap");
+        if (triggerWrap) triggerWrap.addEventListener("click", function (e) { if (e.target === triggerWrap || e.target === titleColorSwatch || e.target === titleColorInput) openTitleColorPicker(); });
+        document.querySelectorAll("#designColorPickerSuggested .design-color-picker-swatch").forEach(function (sw) {
+          sw.addEventListener("click", function () { applyPickerColor(sw.dataset.hex); });
+        });
+        if (colorDone) colorDone.addEventListener("click", closeAndApplyTitleColor);
+        if (colorModal) colorModal.addEventListener("click", function (e) { if (e.target === colorModal) closeAndApplyTitleColor(); });
+        if (colorBox) colorBox.addEventListener("click", function (e) { e.stopPropagation(); });
+      })();
+      ["designAlternativeTitleFont", "designAnimateGradient", "designNoise", "designAltTitleFontText"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener("change", function () {
+          var p = getProfile();
+          if (!p || !p.design) return;
+          p.design = p.design || defaultProfile().design;
+          if (id === "designAlternativeTitleFont" || id === "designAltTitleFontText") p.design.alternativeTitleFont = el.checked;
+          else if (id === "designAnimateGradient") p.design.animateGradient = el.checked;
+          else if (id === "designNoise") p.design.noise = el.checked;
+          saveProfile(p);
+          liveRefreshPreview();
+        });
+      });
+      var designPageFont = document.getElementById("designPageFont");
+      if (designPageFont) designPageFont.addEventListener("change", function () {
+        var p = getProfile();
+        if (p && p.design) { p.design.pageFont = designPageFont.value; saveProfile(p); updateDesignRowValues(); liveRefreshPreview(); }
+      });
+      if (designThemePreview) designThemePreview.addEventListener("click", function () {
+        if (designThemeGridWrap && designIntroMain) {
+          designIntroMain.hidden = true;
+          designThemeGridWrap.hidden = false;
+        }
+      });
+      var designShuffleBtn = document.getElementById("designShuffleBtn");
+      if (designShuffleBtn) designShuffleBtn.addEventListener("click", function () {
+        var p = getProfile();
+        if (!p) return;
+        p.design = p.design || defaultProfile().design;
+        var d = p.design;
+        var arr = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+        d.headerLayout = arr(["classic", "hero"]);
+        d.wallpaperStyle = arr(["fill", "gradient", "blur", "pattern", "image", "video"]);
+        d.gradientPreset = Math.floor(Math.random() * GRADIENT_PRESETS.length);
+        d.animateGradient = Math.random() > 0.6;
+        d.noise = Math.random() > 0.7;
+        d.buttonStyle = arr(["solid", "glass", "outline"]);
+        d.cornerRoundness = arr(["square", "round", "rounder", "full"]);
+        d.buttonShadow = arr(["none", "soft", "strong", "hard"]);
+        d.pageFont = arr(["DM Sans", "Inter", "Playfair Display"]);
+        saveProfile(p);
+        updateDesignRowValues();
+        document.querySelectorAll(".design-subpanel").forEach(function (panel) {
+          if (!panel.hidden) syncDesignPanelFromProfile(panel.id);
+        });
+        liveRefreshPreview();
+      });
+      if (designSaveBtn) designSaveBtn.addEventListener("click", function () {
+        var p = getProfile();
+        if (p) saveProfile(p);
+        liveRefreshPreview();
+      });
+      updateDesignRowValues();
+    }
 
     function getProfilePreviewUrl() {
       var p = getProfile();
@@ -1245,21 +1902,22 @@
       document.addEventListener("touchcancel", onTouchEnd, { passive: true });
     })();
 
-    dashboardAvatar.addEventListener("click", () => dashboardAvatarInput.click());
-    dashboardAvatarInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file || !file.type.startsWith("image/")) return;
-      const r = new FileReader();
-      r.onload = () => {
-        const p = getProfile();
-        p.avatar = r.result;
-        saveProfile(p);
-        dashboardAvatarPreview.src = p.avatar;
-        dashboardAvatarPreview.hidden = false;
-        dashboardAvatar.querySelector(".plus").style.display = "none";
-      };
-      r.readAsDataURL(file);
-    });
+    if (dashboardAvatar && dashboardAvatarInput) {
+      dashboardAvatar.addEventListener("click", () => dashboardAvatarInput.click());
+      dashboardAvatarInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith("image/")) return;
+        const r = new FileReader();
+        r.onload = () => {
+          const p = getProfile();
+          p.avatar = r.result;
+          saveProfile(p);
+          if (dashboardAvatarPreview) { dashboardAvatarPreview.src = p.avatar; dashboardAvatarPreview.hidden = false; }
+          if (dashboardAvatar) dashboardAvatar.querySelector(".plus").style.display = "none";
+        };
+        r.readAsDataURL(file);
+      });
+    }
 
     dashboardBio.addEventListener("input", () => {
       dashboardBioCounter.textContent = dashboardBio.value.length + "/160";
@@ -1414,20 +2072,60 @@
     var addCategoryTitle = document.getElementById("addCategoryTitle");
     var ADD_SUGGESTED = [
       { icon: "instagram", name: "Instagram", desc: "Display your posts and reels", emoji: "📷" },
+      { icon: "whatsapp", name: "WhatsApp", desc: "Chat link", emoji: "💬" },
       { icon: "tiktok", name: "TikTok", desc: "Share your TikToks", emoji: "🎵" },
       { icon: "youtube", name: "YouTube", desc: "Share YouTube videos", emoji: "▶️" },
       { icon: "spotify", name: "Spotify", desc: "Share your latest or favorite music", emoji: "🎧" },
-      { icon: "website", name: "Website", desc: "Link to your site", emoji: "🌐" },
-      { icon: "telegram", name: "Telegram", desc: "Your Telegram profile", emoji: "✈️" },
-      { icon: "discord", name: "Discord", desc: "Invite to your server", emoji: "💬" },
+      { icon: "email", name: "Email", desc: "Contact email", emoji: "✉️" },
+      { icon: "facebook", name: "Facebook", desc: "Your Facebook", emoji: "📘" },
+      { icon: "x", name: "X", desc: "X (Twitter)", emoji: "𝕏" },
+      { icon: "soundcloud", name: "SoundCloud", desc: "Music and podcasts", emoji: "🎵" },
+      { icon: "snapchat", name: "Snapchat", desc: "Snapchat profile", emoji: "👻" },
+      { icon: "pinterest", name: "Pinterest", desc: "Pinterest board", emoji: "📌" },
+      { icon: "steam", name: "Steam", desc: "Steam profile", emoji: "🎮" },
       { icon: "twitch", name: "Twitch", desc: "Your Twitch channel", emoji: "🎮" },
+      { icon: "discord", name: "Discord", desc: "Invite to your server", emoji: "💬" },
+      { icon: "telegram", name: "Telegram", desc: "Your Telegram profile", emoji: "✈️" },
+      { icon: "website", name: "Custom / Image", desc: "Link or image", emoji: "🖼" },
     ];
     var ADD_CATEGORIES = {
       suggested: { title: "Suggested", items: ADD_SUGGESTED },
-      social: { title: "Social", items: ADD_SUGGESTED.filter(function (x) { return ["instagram", "tiktok", "discord", "telegram"].indexOf(x.icon) !== -1; }) },
-      media: { title: "Media", items: ADD_SUGGESTED.filter(function (x) { return ["youtube", "spotify", "twitch"].indexOf(x.icon) !== -1; }) },
-      contact: { title: "Contact", items: ADD_SUGGESTED.filter(function (x) { return ["website", "telegram"].indexOf(x.icon) !== -1; }) },
+      social: { title: "Social", items: ADD_SUGGESTED.filter(function (x) { return ["instagram", "whatsapp", "tiktok", "facebook", "x", "discord", "telegram", "snapchat", "pinterest"].indexOf(x.icon) !== -1; }) },
+      media: { title: "Media", items: ADD_SUGGESTED.filter(function (x) { return ["youtube", "spotify", "twitch", "soundcloud"].indexOf(x.icon) !== -1; }) },
+      contact: { title: "Contact", items: ADD_SUGGESTED.filter(function (x) { return ["website", "telegram", "email"].indexOf(x.icon) !== -1; }) },
     };
+    var editLinkModal = document.getElementById("editLinkModal");
+    var editLinkModalClose = document.getElementById("editLinkModalClose");
+    function addLinkFromModal(icon, title) {
+      var p = getProfile();
+      p.links = p.links || [];
+      p.links.push({
+        id: generateId(),
+        title: title || "Link",
+        url: "https://",
+        highlight: false,
+        icon: icon || "",
+        type: "link",
+      });
+      saveProfile(p);
+      renderLinkList();
+      liveRefreshPreview();
+    }
+    function addSectionFromModal(title) {
+      var p = getProfile();
+      p.links = p.links || [];
+      p.links.push({
+        id: generateId(),
+        title: title || "Section",
+        url: "#",
+        highlight: false,
+        type: "section",
+        section: title || "Section",
+      });
+      saveProfile(p);
+      renderLinkList();
+      liveRefreshPreview();
+    }
     function openLinkFormWithPrefill(options) {
       options = options || {};
       editingLinkId = null;
@@ -1441,24 +2139,43 @@
       if (linkFriendlyUrl) linkFriendlyUrl.value = "";
       if (linkIcon) linkIcon.value = options.icon || "";
       toggleLinkFormFriendly();
-      linkForm.hidden = false;
+      var editTitleEl = document.getElementById("editLinkModalTitle");
+      if (editTitleEl) editTitleEl.textContent = "Add link";
+      if (editLinkModal) {
+        editLinkModal.hidden = false;
+        document.body.style.overflow = "hidden";
+      }
+    }
+    function closeEditLinkModal() {
+      if (editLinkModal) {
+        editLinkModal.hidden = true;
+        document.body.style.overflow = "";
+      }
+      editingLinkId = null;
     }
     function renderAddSuggested(categoryKey) {
       var cat = ADD_CATEGORIES[categoryKey] || ADD_CATEGORIES.suggested;
       if (addCategoryTitle) addCategoryTitle.textContent = cat.title;
       if (!addSuggestedList) return;
+      addSuggestedList.className = "add-suggested-grid";
       addSuggestedList.innerHTML = "";
       cat.items.forEach(function (item) {
         var li = document.createElement("li");
         var btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "add-suggested-item";
+        btn.className = "add-suggested-circle";
         btn.dataset.icon = item.icon;
         btn.dataset.name = item.name;
-        btn.innerHTML = "<span class=\"add-suggested-icon\">" + (item.emoji || "🔗") + "</span><span class=\"add-suggested-info\"><span class=\"add-suggested-name\">" + (item.name || "") + "</span><span class=\"add-suggested-desc\">" + (item.desc || "") + "</span></span><span class=\"add-suggested-arrow\">›</span>";
+        btn.setAttribute("aria-label", item.name);
+        var logoUrl = item.icon && platformLogoUrl(item.icon);
+        if (logoUrl) {
+          btn.innerHTML = "<img src=\"" + logoUrl + "\" alt=\"\" class=\"add-suggested-circle-logo\" loading=\"lazy\" />";
+        } else {
+          btn.innerHTML = "<span class=\"add-suggested-circle-emoji\">" + (item.emoji || "🔗") + "</span>";
+        }
         btn.addEventListener("click", function () {
           if (addModal) addModal.hidden = true;
-          openLinkFormWithPrefill({ icon: item.icon, title: item.name });
+          addLinkFromModal(item.icon, item.name);
         });
         li.appendChild(btn);
         addSuggestedList.appendChild(li);
@@ -1477,12 +2194,19 @@
     });
     if (addModalClose) addModalClose.addEventListener("click", function () { if (addModal) addModal.hidden = true; });
     if (addModal) addModal.addEventListener("click", function (e) { if (e.target === addModal) addModal.hidden = true; });
+    if (editLinkModalClose) editLinkModalClose.addEventListener("click", closeEditLinkModal);
+    if (editLinkModal) editLinkModal.addEventListener("click", function (e) { if (e.target === editLinkModal) closeEditLinkModal(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && editLinkModal && !editLinkModal.hidden) closeEditLinkModal(); });
+    var addCollectionBtn = document.getElementById("addCollectionBtn");
+    var viewArchiveBtn = document.getElementById("viewArchiveBtn");
+    if (addCollectionBtn) addCollectionBtn.addEventListener("click", function () { /* Add collection – placeholder */ });
+    if (viewArchiveBtn) viewArchiveBtn.addEventListener("click", function () { /* View archive – placeholder */ });
     document.querySelectorAll(".add-type-card").forEach(function (btn) {
       btn.addEventListener("click", function () {
         document.querySelectorAll(".add-type-card").forEach(function (c) { c.setAttribute("aria-pressed", c === btn ? "true" : "false"); });
         var type = btn.dataset.addType;
         if (addModal) addModal.hidden = true;
-        if (type === "section") openLinkFormWithPrefill({ isSection: true, title: "Section" });
+        if (type === "section") addSectionFromModal("Section");
         else openLinkFormWithPrefill();
       });
     });
@@ -1503,23 +2227,27 @@
         var filtered = ADD_SUGGESTED.filter(function (x) { return (x.name + " " + (x.desc || "")).toLowerCase().indexOf(q) !== -1; });
         if (addCategoryTitle) addCategoryTitle.textContent = "Search";
         if (!addSuggestedList) return;
+        addSuggestedList.className = "add-suggested-grid";
         addSuggestedList.innerHTML = "";
         filtered.forEach(function (item) {
           var li = document.createElement("li");
           var b = document.createElement("button");
           b.type = "button";
-          b.className = "add-suggested-item";
-          b.innerHTML = "<span class=\"add-suggested-icon\">" + (item.emoji || "🔗") + "</span><span class=\"add-suggested-info\"><span class=\"add-suggested-name\">" + item.name + "</span><span class=\"add-suggested-desc\">" + (item.desc || "") + "</span></span><span class=\"add-suggested-arrow\">›</span>";
-          b.addEventListener("click", function () { if (addModal) addModal.hidden = true; openLinkFormWithPrefill({ icon: item.icon, title: item.name }); });
+          b.className = "add-suggested-circle";
+          b.setAttribute("aria-label", item.name);
+          var logoUrl = item.icon && platformLogoUrl(item.icon);
+          if (logoUrl) {
+            b.innerHTML = "<img src=\"" + logoUrl + "\" alt=\"\" class=\"add-suggested-circle-logo\" loading=\"lazy\" />";
+          } else {
+            b.innerHTML = "<span class=\"add-suggested-circle-emoji\">" + (item.emoji || "🔗") + "</span>";
+          }
+          b.addEventListener("click", function () { if (addModal) addModal.hidden = true; addLinkFromModal(item.icon, item.name); });
           li.appendChild(b);
           addSuggestedList.appendChild(li);
         });
       });
     }
-    linkFormCancel.addEventListener("click", () => {
-      linkForm.hidden = true;
-      editingLinkId = null;
-    });
+    linkFormCancel.addEventListener("click", closeEditLinkModal);
     linkFormSave.addEventListener("click", () => {
       var friendly = linkTypeFriendly && linkTypeFriendly.checked;
       var isSection = linkIsSection && linkIsSection.checked;
@@ -1574,8 +2302,7 @@
         });
       }
       saveProfile(p);
-      linkForm.hidden = true;
-      editingLinkId = null;
+      closeEditLinkModal();
       renderLinkList();
       liveRefreshPreview();
     });
@@ -1592,6 +2319,15 @@
     });
     var layout = document.querySelector(".dashboard-layout");
     if (layout) layout.classList.toggle("preview-half", panelId === "panelTheme");
+    if (panelId === "panelTheme") {
+      var intro = document.getElementById("designIntro");
+      var introMain = document.querySelector(".design-intro-main");
+      var wrap = document.querySelector(".design-theme-grid-wrap");
+      if (intro) intro.hidden = false;
+      if (introMain) introMain.hidden = false;
+      document.querySelectorAll(".design-subpanel").forEach(function (p) { p.hidden = true; });
+      if (wrap) wrap.hidden = true;
+    }
     if (panelId === "panelLink") updateQrcodePanel();
   }
 
@@ -1742,87 +2478,104 @@
       card.draggable = true;
       card.dataset.index = String(index);
       const clickCount = clicks[link.id] || 0;
-      var iconHtml = "";
-      if (isSection) {
-        iconHtml = '<div class="link-card-icon">📂</div>';
-      } else if (link.type === "image" && link.imageUrl) {
-        iconHtml = '<div class="link-card-icon"><img src="' + escapeHtml(link.imageUrl) + '" alt="" onerror="this.parentElement.innerHTML=\'🖼\'" /></div>';
-      } else {
-        var logoUrl = link.icon && linkLogoUrl(link.icon);
-        if (logoUrl) {
-          iconHtml = '<div class="link-card-icon"><img src="' + escapeHtml(logoUrl) + '" alt="" class="link-card-logo" loading="lazy" onerror="this.outerHTML=\'🔗\'" /></div>';
-        } else {
-          iconHtml = '<div class="link-card-icon">🔗</div>';
-        }
-      }
+      const isInstagram = (link.icon || "").toLowerCase() === "instagram" || (link.title || "").toLowerCase().indexOf("instagram") !== -1;
       if (isSection) {
         card.innerHTML = `
-          <div class="link-card-header">
-            ${iconHtml}
-            <button type="button" class="link-card-handle" aria-label="Reorder">⋮⋮</button>
-            <span class="link-card-title">${escapeHtml(link.title)}</span>
-          </div>
-          <div class="link-card-actions">
-            <button type="button" class="link-card-edit" title="Edit">✎</button>
-            <button type="button" class="btn-delete-card" title="Delete">🗑</button>
+          <div class="link-card-inner">
+            <div class="link-card-left">
+              <button type="button" class="link-card-handle" aria-label="Reorder">⋮⋮</button>
+              <div class="link-card-body">
+                <div class="link-card-title-row">
+                  <span class="link-card-title">${escapeHtml(link.title || link.section || "Section")}</span>
+                  <button type="button" class="link-card-edit" title="Edit">✎</button>
+                </div>
+              </div>
+            </div>
+            <div class="link-card-right">
+              <button type="button" class="link-card-edit" title="Edit">✎</button>
+              <button type="button" class="btn-delete-card" title="Delete">🗑</button>
+            </div>
           </div>
         `;
+        var editBtns = card.querySelectorAll(".link-card-edit");
+        editBtns.forEach(function (btn) { btn.addEventListener("click", openEdit); });
       } else {
         card.innerHTML = `
-          <div class="link-card-header">
-            ${iconHtml}
-            <button type="button" class="link-card-handle" aria-label="Reorder">⋮⋮</button>
-            <span class="link-card-title">${escapeHtml(link.title)}</span>
+          <div class="link-card-inner">
+            <div class="link-card-left">
+              <button type="button" class="link-card-handle" aria-label="Reorder">⋮⋮</button>
+              <div class="link-card-body">
+                <div class="link-card-title-row">
+                  <span class="link-card-title">${escapeHtml(link.title)}</span>
+                  <button type="button" class="link-card-edit link-card-edit-title" title="Edit">✎</button>
+                </div>
+                <div class="link-card-url-row">
+                  <span class="link-card-url-text">URL</span>
+                  <button type="button" class="link-card-edit link-card-edit-url" title="Edit URL">✎</button>
+                </div>
+                <div class="link-card-meta">
+                  <span class="link-card-meta-icons">
+                    <span class="link-card-meta-icon" title="Video">▶</span>
+                    <span class="link-card-meta-icon" title="Image">▢</span>
+                    <button type="button" class="link-card-meta-icon link-card-star" title="Highlight">${link.highlight ? "★" : "☆"}</button>
+                    <span class="link-card-meta-icon" title="Schedule">🕐</span>
+                    <span class="link-card-meta-icon" title="Privacy">🔒</span>
+                    <span class="link-card-meta-icon link-card-chart" title="Stats">📊</span>
+                  </span>
+                  <span class="link-card-clicks">${clickCount} clicks</span>
+                </div>
+              </div>
+            </div>
+            <div class="link-card-right">
+              <button type="button" class="link-card-share" title="Share">↗</button>
+              <label class="link-card-toggle-wrap"><input type="checkbox" class="link-card-toggle" ${link.highlight ? "checked" : ""} aria-label="Visible" /><span class="link-card-toggle-slider"></span></label>
+              <button type="button" class="btn-delete-card" title="Delete">🗑</button>
+            </div>
           </div>
-          <input type="url" class="link-card-url" value="${escapeHtml(link.url)}" placeholder="https://..." />
-          <div class="link-card-actions">
-            <button type="button" class="link-card-star" title="Highlight">${link.highlight ? "★" : "☆"}</button>
-            <span class="link-card-clicks">${clickCount} clicks</span>
-            <button type="button" class="link-card-edit" title="Edit">✎</button>
-            <button type="button" class="btn-delete-card" title="Delete">🗑</button>
-          </div>
+          ${isInstagram ? '<div class="link-card-connect-instagram">Looking for a more visual display? Connect your Instagram <span class="link-card-connect-info" title="Connect Instagram">ⓘ</span></div>' : ""}
         `;
-      }
-      const urlInput = card.querySelector(".link-card-url");
-      if (urlInput) {
-        urlInput.addEventListener("blur", () => {
+        var starBtn = card.querySelector(".link-card-star");
+        if (starBtn) starBtn.addEventListener("click", function () {
           const p = getProfile();
-          const l = (p.links || []).find((x) => x.id === link.id);
-          if (l && urlInput.value.trim()) {
-            l.url = urlInput.value.trim();
+          const l = (p.links || []).find(function (x) { return x.id === link.id; });
+          if (l) {
+            l.highlight = !l.highlight;
+            saveProfile(p);
+            renderLinkList();
+            liveRefreshPreview();
+          }
+        });
+        var toggleInput = card.querySelector(".link-card-toggle");
+        if (toggleInput) toggleInput.addEventListener("change", function () {
+          const p = getProfile();
+          const l = (p.links || []).find(function (x) { return x.id === link.id; });
+          if (l) {
+            l.highlight = !!toggleInput.checked;
             saveProfile(p);
             liveRefreshPreview();
           }
         });
+        card.querySelector(".link-card-edit-title, .link-card-edit-url").addEventListener("click", openEdit);
       }
-      var starBtn = card.querySelector(".link-card-star");
-      if (starBtn) starBtn.addEventListener("click", () => {
-        const p = getProfile();
-        const l = (p.links || []).find((x) => x.id === link.id);
-        if (l) {
-          l.highlight = !l.highlight;
-          saveProfile(p);
-          renderLinkList();
-          liveRefreshPreview();
-        }
-      });
-      card.querySelector(".link-card-edit").addEventListener("click", () => {
+      function openEdit() {
         editingLinkId = link.id;
         var friendly = (link.type === "image" || !!link.imageUrl) && link.type !== "section";
-        var isSection = link.type === "section";
+        var isSec = link.type === "section";
         if (linkTypeFriendly) linkTypeFriendly.checked = friendly;
-        if (linkIsSection) linkIsSection.checked = isSection;
-        if (linkTitle) linkTitle.value = isSection ? "" : (link.title || "");
-        if (linkUrl) linkUrl.value = isSection ? "" : (link.url || "");
-        if (linkSectionTitle) linkSectionTitle.value = isSection ? (link.title || link.section || "") : "";
+        if (linkIsSection) linkIsSection.checked = isSec;
+        if (linkTitle) linkTitle.value = isSec ? "" : (link.title || "");
+        if (linkUrl) linkUrl.value = isSec ? "" : (link.url || "");
+        if (linkSectionTitle) linkSectionTitle.value = isSec ? (link.title || link.section || "") : "";
         if (linkHighlight) linkHighlight.checked = !!link.highlight;
         if (linkIcon) linkIcon.value = link.icon || "";
         if (linkImageUrl) linkImageUrl.value = link.imageUrl || "";
         if (linkFriendlyUrl) linkFriendlyUrl.value = link.url || "";
         toggleLinkFormFriendly();
-        linkForm.hidden = false;
-      });
-      card.querySelector(".btn-delete-card").addEventListener("click", () => {
+        var editTitleEl = document.getElementById("editLinkModalTitle");
+        if (editTitleEl) editTitleEl.textContent = "Edit link";
+        if (editLinkModal) { editLinkModal.hidden = false; document.body.style.overflow = "hidden"; }
+      }
+      card.querySelector(".btn-delete-card").addEventListener("click", function () {
         const p = getProfile();
         p.links = (p.links || []).filter((l) => l.id !== link.id);
         saveProfile(p);

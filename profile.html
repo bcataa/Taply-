@@ -30,11 +30,19 @@
     <script src="subdomain-config.js"></script>
     <div class="live-page-wrap" id="livePageWrap">
       <div class="live-profile" id="liveProfile">
-        <div class="live-avatar-wrap">
-          <img class="live-avatar" id="liveAvatar" src="" alt="" />
-          <div class="live-avatar-placeholder" id="liveAvatarPlaceholder"></div>
+        <div class="live-hero-half" id="liveHeroHalf" hidden aria-hidden="true">
+          <div class="live-hero-fade"></div>
+          <h1 class="live-name live-name-hero" id="liveNameHero"></h1>
+          <img class="live-title-logo" id="liveTitleLogo" alt="" hidden />
         </div>
-        <h1 class="live-name" id="liveName">Name</h1>
+        <div class="live-classic-header" id="liveClassicHeader">
+          <div class="live-avatar-wrap">
+            <img class="live-avatar" id="liveAvatar" src="" alt="" />
+            <div class="live-avatar-placeholder" id="liveAvatarPlaceholder"></div>
+          </div>
+          <h1 class="live-name" id="liveName">Name</h1>
+          <img class="live-title-logo live-title-logo-classic" id="liveTitleLogoClassic" alt="" hidden />
+        </div>
         <p class="live-bio" id="liveBio"></p>
         <div class="live-social" id="liveSocial"></div>
         <div class="live-links" id="liveLinks"></div>
@@ -96,6 +104,32 @@
             wrap.style.backgroundRepeat = "";
           }
 
+          var design = profile.design || {};
+          var headerLayout = design.headerLayout || "classic";
+          var titleStyle = design.titleStyle || "text";
+          var titleSize = design.titleSize || "small";
+          var titleColor = design.titleColor || "#362630";
+          var titleLogoUrl = design.titleLogoUrl || "";
+          var isHero = headerLayout === "hero";
+          var liveProfileEl = document.getElementById("liveProfile");
+          var liveHeroHalf = document.getElementById("liveHeroHalf");
+          var liveClassicHeader = document.getElementById("liveClassicHeader");
+          if (liveProfileEl) {
+            liveProfileEl.classList.toggle("live-header-layout-hero", isHero);
+            liveProfileEl.classList.toggle("live-header-layout-classic", !isHero);
+          }
+          if (liveHeroHalf) {
+            liveHeroHalf.hidden = !isHero;
+            liveHeroHalf.setAttribute("aria-hidden", isHero ? "true" : "false");
+            if (isHero) {
+              var heroBg = profile.avatar || "";
+              liveHeroHalf.style.backgroundImage = heroBg ? "url(" + heroBg + ")" : "none";
+              liveHeroHalf.style.backgroundColor = heroBg ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.15)";
+            }
+          }
+          if (liveClassicHeader) liveClassicHeader.hidden = isHero;
+          var pageBg = themeColors[theme] || "#f5ede1";
+          if (wrap) wrap.style.setProperty("--live-page-bg", pageBg);
           var liveAvatar = document.getElementById("liveAvatar");
           var liveAvatarPlaceholder = document.getElementById("liveAvatarPlaceholder");
           if (profile.avatar) {
@@ -107,8 +141,27 @@
             liveAvatar.hidden = true;
             liveAvatarPlaceholder.hidden = false;
           }
-
-          document.getElementById("liveName").textContent = profile.displayName || profile.username || "Name";
+          var displayTitle = profile.displayName || profile.username || "Name";
+          var liveName = document.getElementById("liveName");
+          var liveNameHero = document.getElementById("liveNameHero");
+          var liveTitleLogo = document.getElementById("liveTitleLogo");
+          var liveTitleLogoClassic = document.getElementById("liveTitleLogoClassic");
+          function applyTitleColorSize(el) {
+            if (!el) return;
+            el.style.color = titleColor;
+            el.classList.toggle("live-name-size-large", titleSize === "large");
+          }
+          if (titleStyle === "logo" && titleLogoUrl) {
+            if (liveName) liveName.hidden = true;
+            if (liveNameHero) liveNameHero.hidden = true;
+            if (liveTitleLogo) { liveTitleLogo.src = titleLogoUrl; liveTitleLogo.hidden = false; liveTitleLogo.classList.toggle("live-title-logo-large", titleSize === "large"); }
+            if (liveTitleLogoClassic) { liveTitleLogoClassic.src = titleLogoUrl; liveTitleLogoClassic.hidden = false; liveTitleLogoClassic.classList.toggle("live-title-logo-large", titleSize === "large"); }
+          } else {
+            if (liveName) { liveName.textContent = displayTitle; liveName.hidden = false; applyTitleColorSize(liveName); }
+            if (liveNameHero) { liveNameHero.textContent = displayTitle; liveNameHero.hidden = false; applyTitleColorSize(liveNameHero); }
+            if (liveTitleLogo) liveTitleLogo.hidden = true;
+            if (liveTitleLogoClassic) liveTitleLogoClassic.hidden = true;
+          }
           var bioEl = document.getElementById("liveBio");
           if (profile.bio) {
             bioEl.textContent = profile.bio;
@@ -124,20 +177,8 @@
           var socialEl = document.getElementById("liveSocial");
           var simpleIconsCdn = "https://cdn.simpleicons.org";
           var platformSlugs = { instagram: "instagram", whatsapp: "whatsapp", tiktok: "tiktok", youtube: "youtube", website: "globe", spotify: "spotify", threads: "threads", facebook: "facebook", x: "x", soundcloud: "soundcloud", snapchat: "snapchat", pinterest: "pinterest", steam: "steam", telegram: "telegram", discord: "discord", twitch: "twitch" };
-          if (socialLinks.length > 0) {
-            var linksHtml = socialLinks.map(function (entry) {
-              var key = entry.platform || "website";
-              var url = ((entry.url || (profile.socialUrls || {})[key]) || "#").replace(/"/g, "&quot;");
-              var label = key.charAt(0).toUpperCase() + key.slice(1);
-              var slug = platformSlugs[key];
-              var logo = slug ? "<img src=\"" + simpleIconsCdn + "/" + slug + "\" alt=\"\" class=\"live-social-logo\" loading=\"lazy\" data-label=\"" + label.replace(/"/g, "&quot;") + "\" onerror=\"this.style.display='none';var s=this.nextElementSibling;if(s)s.style.display='inline'\" /><span class=\"live-social-fallback\" style=\"display:none\">" + label + "</span>" : label;
-              return "<a href=\"" + url + "\" target=\"_blank\" rel=\"noopener\" class=\"live-social-link\" aria-label=\"" + label + "\">" + logo + "</a>";
-            }).join("");
-            socialEl.innerHTML = linksHtml;
-            socialEl.hidden = false;
-          } else {
-            socialEl.hidden = true;
-          }
+          /* Profile URLs: doar în dashboard (cutie), nu pe pagina publică */
+          if (socialEl) socialEl.hidden = true;
 
           var linkIconSlugs = { youtube: "youtube", instagram: "instagram", tiktok: "tiktok", website: "globe", spotify: "spotify", steam: "steam", telegram: "telegram", discord: "discord", twitch: "twitch", link: "link" };
           function linkDomain(url) {
