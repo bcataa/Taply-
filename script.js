@@ -23,7 +23,10 @@
   function getCanonicalOrigin() {
     var host = (window.location && window.location.hostname) || "taply.ro";
     var proto = (window.location && window.location.protocol) || "https:";
-    if (host === "localhost" || host === "127.0.0.1") return proto + "//" + host;
+    if (host === "localhost" || host === "127.0.0.1") {
+      var port = (window.location && window.location.port) ? ":" + window.location.port : "";
+      return proto + "//" + host + port;
+    }
     if (!host.startsWith("www.") && host.indexOf(".") !== -1) host = "www." + host;
     return proto + "//" + host;
   }
@@ -34,7 +37,10 @@
   }
   function getDisplayHost() {
     var h = (window.location && window.location.hostname) || "taply.ro";
-    if (h === "localhost" || h === "127.0.0.1") return h;
+    if (h === "localhost" || h === "127.0.0.1") {
+      var p = (window.location && window.location.port) ? ":" + window.location.port : "";
+      return h + p;
+    }
     return h.replace(/^www\./i, "");
   }
   function getSubdomainDomain() {
@@ -93,7 +99,6 @@
     "website",
     "email",
   ];
-  const STRIP_ADD_PLATFORMS = ["instagram", "tiktok", "whatsapp", "email"];
 
   const platformLabels = {
     instagram: "Instagram",
@@ -221,9 +226,6 @@
       } catch {
         return null;
       }
-    }
-    if (profile && (!profile.socialLinks || profile.socialLinks.length === 0) && (profile.platforms || []).length > 0) {
-      profile.socialLinks = (profile.platforms || []).map(function (key) { return { platform: key, url: (profile.socialUrls || {})[key] || "" }; });
     }
     if (profile && !profile.design) {
       profile.design = defaultProfile().design;
@@ -616,17 +618,105 @@
   var addProfileModal = document.getElementById("addProfileModal");
   var addProfileGrid = document.getElementById("addProfileGrid");
   var addProfileModalClose = document.getElementById("addProfileModalClose");
+  var addProfileUrlModal = document.getElementById("addProfileUrlModal");
+  var addProfileUrlIconGrid = document.getElementById("addProfileUrlIconGrid");
+  var addProfileUrlInput = document.getElementById("addProfileUrlInput");
+  var addProfileUrlSave = document.getElementById("addProfileUrlSave");
+  var addProfileUrlCancel = document.getElementById("addProfileUrlCancel");
+  var addProfileUrlModalClose = document.getElementById("addProfileUrlModalClose");
+  var changeIconModal = document.getElementById("changeIconModal");
+  var changeIconGrid = document.getElementById("changeIconGrid");
+  var changeIconModalClose = document.getElementById("changeIconModalClose");
 
-  function openEditProfileModal(platformKey) {
+  var selectedAddProfileUrlPlatform = null;
+
+  function openChangeIconModal(entryIndex) {
+    if (!changeIconGrid || !changeIconModal) return;
+    changeIconModal.dataset.editIndex = String(entryIndex);
+    changeIconGrid.innerHTML = "";
+    PLATFORMS.forEach(function (key) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "add-profile-url-icon-btn";
+      btn.dataset.platform = key;
+      btn.setAttribute("aria-label", platformLabels[key] || key);
+      var logoUrl = platformLogoUrl(key);
+      if (logoUrl) btn.innerHTML = '<img src="' + logoUrl + '" alt="" loading="lazy" />';
+      else btn.innerHTML = '<span class="add-profile-url-icon-letter">' + (platformLabels[key] || key).charAt(0) + '</span>';
+      btn.addEventListener("click", function () {
+        var p = getProfile();
+        if (!p || !p.socialLinks) return;
+        var idx = parseInt(changeIconModal.dataset.editIndex, 10);
+        if (idx < 0 || idx >= p.socialLinks.length) return;
+        p.socialLinks[idx].platform = key;
+        saveProfile(p);
+        closeChangeIconModal();
+        renderLinksStripAddIcons();
+        renderSocialUrls();
+        liveRefreshPreview();
+      });
+      changeIconGrid.appendChild(btn);
+    });
+    changeIconModal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeChangeIconModal() {
+    if (changeIconModal) {
+      changeIconModal.hidden = true;
+      document.body.style.overflow = "";
+      changeIconModal.removeAttribute("data-edit-index");
+    }
+  }
+
+  function openAddProfileUrlModal() {
+    selectedAddProfileUrlPlatform = null;
+    if (addProfileUrlInput) addProfileUrlInput.value = "";
+    if (!addProfileUrlIconGrid) return;
+    addProfileUrlIconGrid.innerHTML = "";
+    PLATFORMS.forEach(function (key) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "add-profile-url-icon-btn";
+      btn.dataset.platform = key;
+      btn.setAttribute("aria-label", platformLabels[key] || key);
+      var logoUrl = platformLogoUrl(key);
+      if (logoUrl) btn.innerHTML = '<img src="' + logoUrl + '" alt="" loading="lazy" />';
+      else btn.innerHTML = '<span class="add-profile-url-icon-letter">' + (platformLabels[key] || key).charAt(0) + '</span>';
+      btn.addEventListener("click", function () {
+        addProfileUrlIconGrid.querySelectorAll(".add-profile-url-icon-btn").forEach(function (b) { b.classList.remove("is-selected"); });
+        btn.classList.add("is-selected");
+        selectedAddProfileUrlPlatform = key;
+      });
+      addProfileUrlIconGrid.appendChild(btn);
+    });
+    if (addProfileUrlModal) {
+      addProfileUrlModal.hidden = false;
+      document.body.style.overflow = "hidden";
+      if (addProfileUrlInput) setTimeout(function () { addProfileUrlInput.focus(); }, 80);
+    }
+  }
+  function closeAddProfileUrlModal() {
+    if (addProfileUrlModal) {
+      addProfileUrlModal.hidden = true;
+      document.body.style.overflow = "";
+    }
+    selectedAddProfileUrlPlatform = null;
+  }
+
+  var panelLinks = document.getElementById("panelLinks");
+  function openEditProfileModal(platformKey, entryIndex) {
     var p = getProfile();
-    var entry = (p.socialLinks || []).find(function (e) { return (e.platform || "") === platformKey; });
+    var links = p.socialLinks || [];
+    var entry = typeof entryIndex === "number" && links[entryIndex] ? links[entryIndex] : links.find(function (e) { return (e.platform || "") === platformKey; });
     if (!entry) return;
     if (editProfileUrlPlatform) editProfileUrlPlatform.value = platformLabels[platformKey] || platformKey;
     if (editProfileUrlInput) editProfileUrlInput.value = entry.url || "";
     if (editProfileUrlModal) {
       editProfileUrlModal.dataset.editPlatform = platformKey;
+      if (typeof entryIndex === "number") editProfileUrlModal.dataset.editIndex = String(entryIndex); else editProfileUrlModal.removeAttribute("data-edit-index");
       editProfileUrlModal.hidden = false;
       document.body.style.overflow = "hidden";
+      if (panelLinks) panelLinks.classList.add("profile-url-modal-open");
       if (editProfileUrlInput) setTimeout(function () { editProfileUrlInput.focus(); }, 80);
     }
   }
@@ -635,15 +725,16 @@
       editProfileUrlModal.hidden = true;
       document.body.style.overflow = "";
       editProfileUrlModal.removeAttribute("data-edit-platform");
+      editProfileUrlModal.removeAttribute("data-edit-index");
     }
+    if (panelLinks) panelLinks.classList.remove("profile-url-modal-open");
   }
   function openAddProfileModal() {
     if (!addProfileGrid) return;
     addProfileGrid.innerHTML = "";
     var socialList = (getProfile() || {}).socialLinks || [];
-    var added = socialList.map(function (e) { return e.platform || ""; });
+    var added = socialList.filter(function (e) { return e.origin === "strip"; }).map(function (e) { return e.platform || ""; });
     PLATFORMS.forEach(function (key) {
-      if (STRIP_ADD_PLATFORMS.indexOf(key) !== -1) return;
       var already = added.indexOf(key) !== -1;
       var btn = document.createElement("button");
       btn.type = "button";
@@ -657,7 +748,7 @@
         var pr = getProfile();
         pr.socialLinks = pr.socialLinks || [];
         if (pr.socialLinks.length >= MAX_SOCIAL_LINKS) return;
-        pr.socialLinks.push({ platform: key, url: "" });
+        pr.socialLinks.push({ platform: key, url: "", origin: "strip" });
         saveProfile(pr);
         closeAddProfileModal();
         renderLinksStripAddIcons();
@@ -677,6 +768,8 @@
       document.body.style.overflow = "";
     }
   }
+
+  var STRIP_SHORTCUTS = ["instagram", "x", "youtube"];
 
   function renderLinksStripAddIcons() {
     var container = document.getElementById("linksStripAddIcons");
@@ -705,8 +798,7 @@
       }
       return btn;
     }
-    STRIP_ADD_PLATFORMS.forEach(function (key) {
-      var alreadyAdded = socialList.some(function (e) { return (e.platform || "") === key; });
+    function addStripButton(key, alreadyAdded, stripEntryIndex) {
       var btn = makeStripBtn(key, false, alreadyAdded);
       btn.addEventListener("click", function (e) {
         var target = e.target;
@@ -714,29 +806,43 @@
         if (alreadyAdded) {
           if (isBadge) {
             var p = getProfile();
-            p.socialLinks = (p.socialLinks || []).filter(function (el) { return (el.platform || "") !== key; });
+            p.socialLinks = (p.socialLinks || []).filter(function (el) { return !(el.platform === key && el.origin === "strip"); });
             saveProfile(p);
             renderLinksStripAddIcons();
             renderSocialUrls();
-            liveRefreshPreview();
+            // Ștergere iconiță din strip – actualizare instant în preview.
+            try { refreshPreview(); } catch (e) { liveRefreshPreview(); }
           } else {
-            openEditProfileModal(key);
+            openEditProfileModal(key, stripEntryIndex);
           }
           return;
         }
         var p = getProfile();
         p.socialLinks = p.socialLinks || [];
         if (p.socialLinks.length >= MAX_SOCIAL_LINKS) return;
-        p.socialLinks.push({ platform: key, url: "" });
+        p.socialLinks.push({ platform: key, url: "", origin: "strip" });
         var newIndex = p.socialLinks.length - 1;
-        var promise = saveProfile(p);
+        saveProfile(p);
         renderLinksStripAddIcons();
         renderSocialUrls(newIndex);
-        if (promise && promise.then) promise.then(function () { refreshPreview(); }).catch(function () {});
-        else liveRefreshPreview();
+        // Adăugare iconiță în strip – vrem să apară imediat.
+        try { refreshPreview(); } catch (e) { liveRefreshPreview(); }
       });
       container.appendChild(btn);
-    });
+    }
+    var stripOnly = (socialList || []).filter(function (e) { return e && e.origin === "strip"; });
+    if (stripOnly.length === 0) {
+      STRIP_SHORTCUTS.forEach(function (key) {
+        addStripButton(key, false);
+      });
+    } else {
+      stripOnly.forEach(function (entry) {
+        var key = (entry && entry.platform) || "";
+        if (!key) return;
+        var fullIndex = socialList.findIndex(function (e) { return e === entry; });
+        addStripButton(key, true, fullIndex >= 0 ? fullIndex : undefined);
+      });
+    }
     for (var i = 0; i < 2; i++) {
       var plusBtn = makeStripBtn(null, true, false);
       plusBtn.addEventListener("click", function () {
@@ -744,6 +850,7 @@
       });
       container.appendChild(plusBtn);
     }
+    setupLinksStripDragDrop(container);
   }
 
   function renderDashboardPlatforms() {
@@ -789,10 +896,12 @@
     var platformKey = editProfileUrlModal && editProfileUrlModal.dataset.editPlatform;
     if (!platformKey || !editProfileUrlInput) return;
     var p = getProfile();
-    var entry = (p.socialLinks || []).find(function (e) { return (e.platform || "") === platformKey; });
+    var editIdx = editProfileUrlModal.dataset.editIndex != null ? parseInt(editProfileUrlModal.dataset.editIndex, 10) : -1;
+    var entry = (editIdx >= 0 && p.socialLinks && p.socialLinks[editIdx]) ? p.socialLinks[editIdx] : (p.socialLinks || []).find(function (e) { return (e.platform || "") === platformKey; });
     if (entry) {
       entry.url = editProfileUrlInput.value.trim();
       saveProfile(p);
+      renderLinksStripAddIcons();
       renderSocialUrls();
       liveRefreshPreview();
     }
@@ -801,103 +910,187 @@
   if (editProfileUrlCancel) editProfileUrlCancel.addEventListener("click", closeEditProfileModal);
   if (document.getElementById("editProfileUrlModalClose")) document.getElementById("editProfileUrlModalClose").addEventListener("click", closeEditProfileModal);
   if (editProfileUrlModal) editProfileUrlModal.addEventListener("click", function (e) { if (e.target === editProfileUrlModal) closeEditProfileModal(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && editProfileUrlModal && !editProfileUrlModal.hidden) closeEditProfileModal(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (changeIconModal && !changeIconModal.hidden) { closeChangeIconModal(); return; }
+    if (addProfileUrlModal && !addProfileUrlModal.hidden) { closeAddProfileUrlModal(); return; }
+    if (editProfileUrlModal && !editProfileUrlModal.hidden) closeEditProfileModal();
+  });
+  if (changeIconModalClose) changeIconModalClose.addEventListener("click", closeChangeIconModal);
+  if (changeIconModal) changeIconModal.addEventListener("click", function (e) { if (e.target === changeIconModal) closeChangeIconModal(); });
   if (addProfileModalClose) addProfileModalClose.addEventListener("click", closeAddProfileModal);
   if (addProfileModal) addProfileModal.addEventListener("click", function (e) { if (e.target === addProfileModal) closeAddProfileModal(); });
+  if (addProfileUrlModalClose) addProfileUrlModalClose.addEventListener("click", closeAddProfileUrlModal);
+  if (addProfileUrlModal) addProfileUrlModal.addEventListener("click", function (e) { if (e.target === addProfileUrlModal) closeAddProfileUrlModal(); });
+  if (addProfileUrlCancel) addProfileUrlCancel.addEventListener("click", closeAddProfileUrlModal);
+  if (addProfileUrlSave) addProfileUrlSave.addEventListener("click", function () {
+    var platform = selectedAddProfileUrlPlatform;
+    var url = addProfileUrlInput ? (addProfileUrlInput.value || "").trim() : "";
+    if (!platform) return;
+    var p = getProfile();
+    if (!p) return;
+    p.socialLinks = p.socialLinks || [];
+    if (p.socialLinks.length >= MAX_SOCIAL_LINKS) return;
+    p.socialLinks.push({ platform: platform, url: url, origin: "add" });
+    var newIndex = p.socialLinks.length - 1;
+    saveProfile(p);
+    closeAddProfileUrlModal();
+    renderLinksStripAddIcons();
+    renderSocialUrls(newIndex);
+    // Adăugare în Profile URLs – update instant în preview.
+    try { refreshPreview(); } catch (e) { liveRefreshPreview(); }
+  });
 
   var socialUrlInputDebounce = {};
   function renderSocialUrls(focusIndex) {
     const profile = getProfile();
     if (!profile) return;
     var links = profile.socialLinks || [];
+    // Sistemul neîncercuit (Profile URLs): doar intrările adăugate cu "+ Add", NU cele din banda de iconițe.
+    var visiblePairs = (links || []).map(function (entry, index) { return { entry: entry, index: index }; }).filter(function (pair) {
+      return pair.entry && pair.entry.origin !== "strip";
+    });
     var labelEl = document.getElementById("socialUrlsLabel");
-    if (labelEl) labelEl.hidden = links.length === 0;
+    if (labelEl) labelEl.hidden = visiblePairs.length === 0;
     socialUrls.innerHTML = "";
-    if (links.length === 0) {
+    if (visiblePairs.length === 0) {
       var emptyP = document.createElement("p");
       emptyP.className = "profile-urls-empty";
-      emptyP.textContent = "No profile URLs yet. Click + on an icon above to add one.";
+      emptyP.textContent = "No profile URLs yet. Use the + Add button above to add one.";
       socialUrls.appendChild(emptyP);
       return;
     }
     const wrap = document.createElement("div");
     wrap.className = "social-url-cards";
-    links.forEach((entry, index) => {
+    visiblePairs.forEach(function (pair) {
+      var entry = pair.entry;
+      var index = pair.index;
       var key = entry.platform || "website";
       var platformName = platformLabels[key] || key;
       const card = document.createElement("div");
       card.className = "link-card social-url-card social-url-row";
       card.draggable = true;
       card.dataset.index = String(index);
+      var displayName = entry.label || platformName;
+      var isEnabled = entry.enabled !== false;
       var logoUrl = platformLogoUrl(key);
       var iconHtml = logoUrl
         ? '<img src="' + logoUrl + '" alt="" class="social-url-card-logo" loading="lazy" />'
         : '<span class="social-url-card-letter">' + platformName.charAt(0) + '</span>';
       card.innerHTML =
         '<div class="link-card-inner">' +
-          '<div class="link-card-left">' +
-            '<button type="button" class="link-card-handle" aria-label="Drag to reorder" title="Drag to reorder">⋮⋮</button>' +
-            '<div class="link-card-body">' +
-              '<div class="link-card-title-row">' +
-                '<span class="link-card-title">' + platformName + ' – Profile URL</span>' +
-                '<button type="button" class="link-card-edit social-url-edit-title" title="Edit">✎</button>' +
+          '<button type="button" class="link-card-handle link-card-handle-dots" aria-label="Drag to reorder"><span></span><span></span></button>' +
+          '<div class="link-card-body">' +
+            '<div class="link-card-header">' +
+              '<div class="link-card-title-wrap">' +
+                '<span class="link-card-title social-url-card-title">' + escapeHtml(displayName) + '</span>' +
+                '<button type="button" class="link-card-pencil social-url-edit-icon" aria-label="Edit name / icon" title="Edit name or icon">✎</button>' +
               '</div>' +
-              '<div class="link-card-url-row">' +
-                '<span class="link-card-url-text">URL</span>' +
-                '<button type="button" class="link-card-edit social-url-edit-url" title="Edit URL">✎</button>' +
+              '<div class="link-card-header-right">' +
+                '<button type="button" class="link-card-share-icon" aria-label="Share" title="Share">↗</button>' +
+                '<label class="link-card-toggle-wrap"><input type="checkbox" class="link-card-toggle social-url-enabled" ' + (isEnabled ? 'checked' : '') + ' /><span class="link-card-toggle-slider"></span></label>' +
               '</div>' +
-              '<div class="social-url-card-icon-row">' + iconHtml + '</div>' +
+            '</div>' +
+            '<div class="link-card-url-row">' +
+              '<span class="link-card-url-label">URL</span>' +
+              '<span class="link-card-url-value social-url-url-display"></span>' +
+              '<button type="button" class="link-card-pencil social-url-edit-url" aria-label="Edit URL" title="Edit URL">✎</button>' +
+            '</div>' +
+            '<div class="link-card-actions">' +
+              '<button type="button" class="link-card-action social-url-change-icon" title="Change icon" aria-label="Change icon">🖼</button>' +
+              '<button type="button" class="link-card-action social-url-open-link" title="Open link" aria-label="Open link">↗</button>' +
+              '<span class="link-card-clicks">0 clicks</span>' +
+              '<button type="button" class="link-card-action social-url-remove" title="Delete" aria-label="Delete">🗑</button>' +
             '</div>' +
           '</div>' +
-          '<div class="link-card-right">' +
-            '<button type="button" class="btn-delete-card social-url-remove" title="Delete">🗑</button>' +
-          '</div>' +
         '</div>';
-      var input = document.createElement("input");
-      input.type = "url";
-      input.placeholder = "https://...";
-      input.value = entry.url || "";
-      input.className = "social-url-card-input";
-      input.setAttribute("aria-label", "URL " + platformName);
-      var urlRow = card.querySelector(".link-card-url-row");
-      urlRow.insertBefore(input, urlRow.querySelector(".social-url-edit-url"));
-      function saveThisUrl() {
+      var urlDisplay = card.querySelector(".social-url-url-display");
+      if (urlDisplay) urlDisplay.textContent = entry.url || "—";
+      var toggleInput = card.querySelector(".social-url-enabled");
+      if (toggleInput) toggleInput.addEventListener("change", function () {
         var p = getProfile();
-        if ((p.socialLinks || [])[index]) p.socialLinks[index].url = input.value.trim();
-        var promise = saveProfile(p);
-        if (promise && promise.then) {
-          promise.then(function () { refreshPreview(); }).catch(function () {});
-        } else {
-          liveRefreshPreview();
-        }
-      }
-      input.addEventListener("change", saveThisUrl);
-      input.addEventListener("input", function () {
-        clearTimeout(socialUrlInputDebounce[index]);
-        socialUrlInputDebounce[index] = setTimeout(saveThisUrl, 700);
+        if (!p || !p.socialLinks || !p.socialLinks[index]) return;
+        p.socialLinks[index].enabled = toggleInput.checked;
+        saveProfile(p);
+        // Pentru link-urile de profil vrem update instant în preview,
+        // de aceea folosim direct refreshPreview (fără debounce).
+        try { refreshPreview(); } catch (e) { liveRefreshPreview(); }
       });
-      card.querySelector(".social-url-edit-title").addEventListener("click", function () { input.focus(); });
-      card.querySelector(".social-url-edit-url").addEventListener("click", function () { input.focus(); });
+      card.querySelector(".social-url-edit-url").addEventListener("click", function () { openEditProfileModal(key); });
+      card.querySelector(".social-url-edit-icon").addEventListener("click", function () { openChangeIconModal(index); });
+      card.querySelector(".social-url-change-icon").addEventListener("click", function () { openChangeIconModal(index); });
+      card.querySelector(".social-url-open-link").addEventListener("click", function () {
+        var u = (entry.url || "").trim();
+        if (u && u !== "#") window.open(u, "_blank", "noopener");
+      });
       card.querySelector(".social-url-remove").addEventListener("click", function () {
         var p = getProfile();
         p.socialLinks = (p.socialLinks || []).filter(function (_, i) { return i !== index; });
-        var promise = saveProfile(p);
+        saveProfile(p);
         renderLinksStripAddIcons();
         renderSocialUrls();
-        if (promise && promise.then) promise.then(function () { refreshPreview(); }).catch(function () {});
-        else liveRefreshPreview();
+        // Ștergerea trebuie să se vadă instant pe telefon, fără întârziere.
+        try { refreshPreview(); } catch (e) { liveRefreshPreview(); }
       });
       wrap.appendChild(card);
     });
     socialUrls.appendChild(wrap);
     setupSocialUrlsDragDrop(socialUrls);
-    if (typeof focusIndex === "number" && focusIndex >= 0 && focusIndex < links.length) {
+    if (typeof focusIndex === "number" && focusIndex >= 0 && focusIndex < visiblePairs.length) {
       setTimeout(function () {
         var card = wrap.querySelectorAll(".social-url-card")[focusIndex];
         var input = card && card.querySelector(".social-url-card-input");
         if (input) input.focus();
       }, 100);
     }
+  }
+
+  function setupLinksStripDragDrop(container) {
+    if (!container) return;
+    var draggedPlatform = null;
+    container.querySelectorAll(".links-strip-add-btn.links-strip-add-has").forEach(function (btn) {
+      var key = btn.dataset.platform;
+      if (!key) return;
+      btn.draggable = true;
+      btn.addEventListener("dragstart", function (e) {
+        draggedPlatform = key;
+        try {
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", key);
+          }
+        } catch (err) {}
+        btn.classList.add("links-strip-add-dragging");
+      });
+      btn.addEventListener("dragend", function () {
+        draggedPlatform = null;
+        btn.classList.remove("links-strip-add-dragging");
+      });
+      btn.addEventListener("dragover", function (e) {
+        if (!draggedPlatform || draggedPlatform === key) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      });
+      btn.addEventListener("drop", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!draggedPlatform || draggedPlatform === key) return;
+        var p = getProfile();
+        if (!p) return;
+        var links = p.socialLinks || [];
+        var fromIdx = links.findIndex(function (l) { return (l.platform || "") === draggedPlatform && l.origin === "strip"; });
+        var toIdx = links.findIndex(function (l) { return (l.platform || "") === key && l.origin === "strip"; });
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+        var item = links.splice(fromIdx, 1)[0];
+        links.splice(toIdx, 0, item);
+        p.socialLinks = links;
+        var promise = saveProfile(p);
+        renderLinksStripAddIcons();
+        renderSocialUrls();
+        if (promise && promise.then) promise.then(function () { refreshPreview(); }).catch(function () {});
+        else if (window.__taplyLiveRefresh) window.__taplyLiveRefresh();
+      });
+    });
   }
 
   function setupSocialUrlsDragDrop(container) {
@@ -1041,8 +1234,16 @@
     if (profileLinkEl) {
       profileLinkEl.href = username ? profileFullUrl : "#";
     }
-    if (previewFrame && username) {
-      previewFrame.src = profileFullUrl + (profileFullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
+    // Folosim direct link-ul public al profilului în telefonul din dreapta.
+    if (previewFrame) {
+      previewFrame.src = profileFullUrl;
+    }
+    if (!window.__taplyPreviewReadyBound) {
+      window.addEventListener("message", function (event) {
+        if (!event || !event.data) return;
+        if (event.data.type === "taply-preview-ready") refreshPreview();
+      });
+      window.__taplyPreviewReadyBound = true;
     }
     if (dashboardLinkUrlPreview) {
       dashboardLinkUrlPreview.value = profileDisplayUrl;
@@ -1099,7 +1300,10 @@
       var fullUrl = getCanonicalOrigin() + "/" + s;
       var displayUrl = getDisplayHost() + "/" + s;
       if (profileLinkEl) profileLinkEl.href = u ? fullUrl : "#";
-      if (previewFrame && u) previewFrame.src = fullUrl + (fullUrl.indexOf("?") >= 0 ? "&" : "?") + "embed=1";
+      // Și aici, pentru când se schimbă username-ul, păstrăm telefonul pe link-ul public.
+      if (previewFrame && (!previewFrame.src || previewFrame.src.indexOf("preview=1") !== -1)) {
+        previewFrame.src = fullUrl;
+      }
       if (dashboardLinkUrlPreview) { dashboardLinkUrlPreview.value = displayUrl; dashboardLinkUrlPreview.dataset.fullUrl = fullUrl; }
       if (dashboardLinkUrl) { dashboardLinkUrl.value = displayUrl; dashboardLinkUrl.dataset.fullUrl = fullUrl; }
       if (sidebarLinkUrl) { sidebarLinkUrl.value = displayUrl; sidebarLinkUrl.dataset.fullUrl = fullUrl; }
@@ -1238,11 +1442,12 @@
       var designIntroMain = document.querySelector(".design-intro-main");
       var designThemePreview = document.getElementById("designThemePreview");
       var designThemeGridWrap = document.querySelector(".design-theme-grid-wrap");
-      var designSaveBtn = document.querySelector(".design-save-btn");
+      var designSaveBtn = document.getElementById("designSaveBtn");
       var designHeaderValue = document.getElementById("designHeaderValue");
       var designWallpaperValue = document.getElementById("designWallpaperValue");
       var designButtonsValue = document.getElementById("designButtonsValue");
       var designTextValue = document.getElementById("designTextValue");
+      var designHasUnsavedChanges = false;
       var GRADIENT_PRESETS = [
         "linear-gradient(135deg,#ec4899,#f97316)",
         "linear-gradient(135deg,#f97316,#eab308)",
@@ -1253,6 +1458,20 @@
         "linear-gradient(135deg,#38bdf8,#f97316)",
         "linear-gradient(135deg,#f97316,#ef4444)",
       ];
+      function updateDesignSaveButton() {
+        if (designSaveBtn) {
+          if (designHasUnsavedChanges) designSaveBtn.classList.add("design-save-btn-visible");
+          else designSaveBtn.classList.remove("design-save-btn-visible");
+        }
+      }
+      function markDesignDirty() {
+        designHasUnsavedChanges = true;
+        updateDesignSaveButton();
+      }
+      function clearDesignDirty() {
+        designHasUnsavedChanges = false;
+        updateDesignSaveButton();
+      }
       function showDesignIntro() {
         if (designIntro) designIntro.hidden = false;
         if (designIntroMain) designIntroMain.hidden = false;
@@ -1283,6 +1502,7 @@
           var titleFontTrigger = document.getElementById("designTitleFontTrigger");
           applyDesignConditionalVisibility();
           if (titleFontTrigger) titleFontTrigger.textContent = d.titleFont || "DM Sans";
+          updateTitleFontPreview(d.titleFont || "DM Sans");
           setOptionSelected("headerLayout", d.headerLayout);
           setOptionSelected("titleStyle", d.titleStyle);
           setOptionSelected("titleSize", d.titleSize);
@@ -1328,6 +1548,7 @@
           var titleFontTriggerText = document.getElementById("designTitleFontTriggerText");
           applyDesignConditionalVisibility();
           if (titleFontTriggerText) titleFontTriggerText.textContent = d.titleFont || "DM Sans";
+          updateTitleFontPreview(d.titleFont || "DM Sans");
           setOptionSelected("titleSize", d.titleSize);
         } else if (panelId === "designPanelColors") {
           setColorInput("designColorsButtons", "designColorsButtonsSwatch", d.buttonsColor || "#D14646");
@@ -1340,7 +1561,9 @@
         var p = getProfile();
         var d = (p && p.design) ? p.design : defaultProfile().design;
         var showLogo = (d.titleStyle || "text") === "logo";
-        var showTitleFont = !!d.alternativeTitleFont;
+        var altHeader = document.getElementById("designAlternativeTitleFont");
+        var altText = document.getElementById("designAltTitleFontText");
+        var showTitleFont = !!((altHeader && altHeader.checked) || (altText && altText.checked) || d.alternativeTitleFont);
         var logoField = document.getElementById("designFieldLogoUrl");
         var titleFontWrap = document.getElementById("designTitleFontWrap");
         var titleFontWrapText = document.getElementById("designTitleFontWrapText");
@@ -1355,6 +1578,19 @@
         if (titleFontWrapText) {
           titleFontWrapText.hidden = !showTitleFont;
           titleFontWrapText.style.display = showTitleFont ? "" : "none";
+        }
+      }
+      function updateTitleFontPreview(fontName) {
+        var sample = "Exemplu titlu";
+        var sampleEl = document.getElementById("designTitleFontSample");
+        var sampleTextEl = document.getElementById("designTitleFontSampleText");
+        if (sampleEl) {
+          sampleEl.textContent = sample;
+          sampleEl.style.fontFamily = (fontName || "DM Sans") + ", sans-serif";
+        }
+        if (sampleTextEl) {
+          sampleTextEl.textContent = sample;
+          sampleTextEl.style.fontFamily = (fontName || "DM Sans") + ", sans-serif";
         }
       }
       function setOptionSelected(optionName, value) {
@@ -1373,8 +1609,8 @@
         if (!p) return;
         p.design = p.design || defaultProfile().design;
         p.design[optionName] = value;
-        saveProfile(p);
         updateDesignRowValues();
+        markDesignDirty();
         liveRefreshPreview();
       }
       function updateDesignRowValues() {
@@ -1401,8 +1637,8 @@
             var pr = getProfile();
             if (pr && pr.design) {
               pr.design.gradientPreset = i;
-              saveProfile(pr);
               renderGradientPresets();
+              markDesignDirty();
               liveRefreshPreview();
             }
           });
@@ -1445,10 +1681,10 @@
             var p = getProfile();
             if (p) {
               p.avatar = reader.result;
-              saveProfile(p);
               var headerAvatarImg = document.getElementById("designHeaderAvatarImg");
               if (headerAvatarImg) { headerAvatarImg.src = reader.result; headerAvatarImg.hidden = false; }
               if (profileImageModal) profileImageModal.hidden = true;
+              markDesignDirty();
               liveRefreshPreview();
             }
           };
@@ -1495,19 +1731,19 @@
           else if (input.id === "designButtonTextColor" || input.id === "designColorsButtonText") p.design.buttonTextColor = hex;
           else if (input.id === "designPageTextColor" || input.id === "designColorsPageText") p.design.pageTextColor = hex;
           else if (input.id === "designTitleColor" || input.id === "designColorsTitleText") p.design.titleColor = hex;
-          saveProfile(p);
+          markDesignDirty();
           liveRefreshPreview();
         });
       });
       var designTitleInput = document.getElementById("designTitleInput");
       if (designTitleInput) designTitleInput.addEventListener("input", function () {
         var p = getProfile();
-        if (p) { p.displayName = designTitleInput.value; saveProfile(p); liveRefreshPreview(); }
+        if (p) { p.displayName = designTitleInput.value; markDesignDirty(); liveRefreshPreview(); }
       });
       var designTitleLogoUrl = document.getElementById("designTitleLogoUrl");
       if (designTitleLogoUrl) designTitleLogoUrl.addEventListener("input", function () {
         var p = getProfile();
-        if (p && p.design) { p.design.titleLogoUrl = designTitleLogoUrl.value.trim(); saveProfile(p); liveRefreshPreview(); }
+        if (p && p.design) { p.design.titleLogoUrl = designTitleLogoUrl.value.trim(); markDesignDirty(); liveRefreshPreview(); }
         var logoPreview = document.getElementById("designLogoPreview");
         if (logoPreview) {
           var v = designTitleLogoUrl.value.trim();
@@ -1526,13 +1762,13 @@
             var p = getProfile();
             if (p && p.design) {
               p.design.titleLogoUrl = reader.result;
-              saveProfile(p);
               if (designTitleLogoUrl) {
                 designTitleLogoUrl.value = "";
                 designTitleLogoUrl.placeholder = "Imagine încărcată";
               }
               var logoPreview = document.getElementById("designLogoPreview");
               if (logoPreview) { logoPreview.src = reader.result; logoPreview.hidden = false; }
+              markDesignDirty();
               liveRefreshPreview();
             }
           };
@@ -1610,7 +1846,7 @@
           if (hex && titleColorInput) titleColorInput.value = hex;
           if (hex && titleColorSwatch) titleColorSwatch.style.background = hex;
           var p = getProfile();
-          if (p && p.design && hex) { p.design.titleColor = hex; saveProfile(p); liveRefreshPreview(); }
+          if (p && p.design && hex) { p.design.titleColor = hex; markDesignDirty(); liveRefreshPreview(); }
           if (colorModal) colorModal.hidden = true;
         }
         function dragGradient(e) {
@@ -1675,7 +1911,7 @@
             applyDesignConditionalVisibility();
           } else if (id === "designAnimateGradient") p.design.animateGradient = el.checked;
           else if (id === "designNoise") p.design.noise = el.checked;
-          saveProfile(p);
+          markDesignDirty();
           liveRefreshPreview();
         });
       });
@@ -1692,20 +1928,22 @@
           TITLE_FONTS.forEach(function (fontName) {
             var btn = document.createElement("button");
             btn.type = "button";
-            btn.textContent = fontName;
+            btn.dataset.fontName = fontName;
+            btn.innerHTML = "<span class=\"title-font-modal-name\">" + fontName + "</span><span class=\"title-font-modal-preview\">Exemplu titlu</span>";
             btn.style.fontFamily = fontName + ", sans-serif";
             btn.classList.toggle("is-selected", fontName === current);
             btn.addEventListener("click", function () {
               var pr = getProfile();
               if (pr && pr.design) {
                 pr.design.titleFont = fontName;
-                saveProfile(pr);
                 var trigger = document.getElementById("designTitleFontTrigger");
                 var triggerText = document.getElementById("designTitleFontTriggerText");
                 if (trigger) trigger.textContent = fontName;
                 if (triggerText) triggerText.textContent = fontName;
-                titleFontModalGrid.querySelectorAll("button").forEach(function (b) { b.classList.remove("is-selected"); if (b.textContent === fontName) b.classList.add("is-selected"); });
+                updateTitleFontPreview(fontName);
+                titleFontModalGrid.querySelectorAll("button").forEach(function (b) { b.classList.remove("is-selected"); if (b.dataset.fontName === fontName) b.classList.add("is-selected"); });
                 if (titleFontModal) titleFontModal.hidden = true;
+                markDesignDirty();
                 liveRefreshPreview();
               }
             });
@@ -1727,7 +1965,7 @@
       var designPageFont = document.getElementById("designPageFont");
       if (designPageFont) designPageFont.addEventListener("change", function () {
         var p = getProfile();
-        if (p && p.design) { p.design.pageFont = designPageFont.value; saveProfile(p); updateDesignRowValues(); liveRefreshPreview(); }
+        if (p && p.design) { p.design.pageFont = designPageFont.value; updateDesignRowValues(); markDesignDirty(); liveRefreshPreview(); }
       });
       if (designThemePreview) designThemePreview.addEventListener("click", function () {
         if (designThemeGridWrap && designIntroMain) {
@@ -1751,18 +1989,26 @@
         d.cornerRoundness = arr(["square", "round", "rounder", "full"]);
         d.buttonShadow = arr(["none", "soft", "strong", "hard"]);
         d.pageFont = arr(["DM Sans", "Inter", "Playfair Display"]);
-        saveProfile(p);
         updateDesignRowValues();
         document.querySelectorAll(".design-subpanel").forEach(function (panel) {
           if (!panel.hidden) syncDesignPanelFromProfile(panel.id);
         });
+        markDesignDirty();
         liveRefreshPreview();
       });
-      if (designSaveBtn) designSaveBtn.addEventListener("click", function () {
+      function doDesignSave() {
         var p = getProfile();
-        if (p) saveProfile(p);
-        liveRefreshPreview();
-      });
+        if (!p) return;
+        designHasUnsavedChanges = false;
+        updateDesignSaveButton();
+        var promise = saveProfile(p);
+        if (promise && promise.then) {
+          promise.then(function () { liveRefreshPreview(); }).catch(function () {});
+        } else {
+          liveRefreshPreview();
+        }
+      }
+      if (designSaveBtn) designSaveBtn.addEventListener("click", doDesignSave);
       updateDesignRowValues();
       applyDesignConditionalVisibility();
     }
@@ -1789,7 +2035,9 @@
           customDesignModal.hidden = false;
           document.body.style.overflow = "hidden";
           if (customDesignPreviewFrame) {
-            var previewUrl = (previewFrame && previewFrame.src && previewFrame.src.startsWith(window.location.origin + "/")) ? previewFrame.src : getProfilePreviewUrl();
+            var previewUrl = (previewFrame && previewFrame.src && previewFrame.src.startsWith(window.location.origin + "/") && previewFrame.src.indexOf("preview=1") === -1)
+              ? previewFrame.src
+              : getProfilePreviewUrl();
             customDesignPreviewFrame.src = previewUrl;
             setTimeout(refreshDesignModalPreview, 100);
           }
@@ -1843,8 +2091,8 @@
         var promise = saveProfile(p);
         updateCustomDesignUI(p);
         renderDashboardThemes();
-        if (promise && promise.then) promise.then(function () { refreshPreview(); refreshDesignModalPreview(); }).catch(function () {});
-        else { refreshPreview(); refreshDesignModalPreview(); }
+        refreshPreview();
+        refreshDesignModalPreview();
       });
       customDesignUrl.addEventListener("input", function () {
         clearTimeout(window.customDesignUrlDebounce);
@@ -1853,11 +2101,10 @@
           if (!url) return;
           var p = getProfile();
           p.customBackgroundImage = url;
-          var promise = saveProfile(p);
           updateCustomDesignUI(p);
           renderDashboardThemes();
-          if (promise && promise.then) promise.then(function () { refreshPreview(); refreshDesignModalPreview(); }).catch(function () {});
-          else { refreshPreview(); refreshDesignModalPreview(); }
+          refreshPreview();
+          refreshDesignModalPreview();
         }, 800);
       });
     }
@@ -1865,12 +2112,11 @@
       customDesignClear.addEventListener("click", function () {
         var p = getProfile();
         p.customBackgroundImage = null;
-        var promise = saveProfile(p);
         updateCustomDesignUI(p);
         renderDashboardThemes();
         if (customDesignUrl) customDesignUrl.value = "";
-        if (promise && promise.then) promise.then(function () { refreshPreview(); refreshDesignModalPreview(); }).catch(function () {});
-        else { refreshPreview(); refreshDesignModalPreview(); }
+        refreshPreview();
+        refreshDesignModalPreview();
       });
     }
     function setZoom(delta) {
@@ -2261,15 +2507,7 @@
       });
     }
     addLinkBtn.addEventListener("click", function () {
-      if (addModal) {
-        addModal.hidden = false;
-        if (addModalSearch) addModalSearch.value = "";
-        document.querySelectorAll(".add-type-card").forEach(function (c) { c.setAttribute("aria-pressed", c.dataset.addType === "link" ? "true" : "false"); });
-        document.querySelectorAll(".add-category").forEach(function (c) { c.classList.toggle("is-active", c.dataset.category === "suggested"); });
-        renderAddSuggested("suggested");
-      } else {
-        openLinkFormWithPrefill();
-      }
+      openAddProfileUrlModal();
     });
     if (addModalClose) addModalClose.addEventListener("click", function () { if (addModal) addModal.hidden = true; });
     if (addModal) addModal.addEventListener("click", function (e) { if (e.target === addModal) addModal.hidden = true; });
@@ -2411,16 +2649,40 @@
   }
 
   function refreshPreview() {
-    if (!previewFrame || !previewFrame.src) return;
-    var url = previewFrame.src;
-    var sep = url.indexOf("?") >= 0 ? "&" : "?";
-    previewFrame.src = url.split(/[?#]/)[0] + (url.indexOf("?") >= 0 ? url.substring(url.indexOf("?")) : "") + sep + "_=" + Date.now();
+    if (!previewFrame) return;
+    if (!previewFrame.src || previewFrame.src.indexOf("preview=1") === -1) {
+      previewFrame.src = (window.location.origin || "") + "/profile?embed=1&preview=1";
+      return;
+    }
+    try {
+      var p = getProfile() || (currentUser && currentUser.profile) || null;
+      var previewProfile = p ? JSON.parse(JSON.stringify(p)) : null;
+      if (previewProfile) {
+        var u = (currentUser && currentUser.username) || previewProfile.username || "";
+        previewProfile.username = u;
+      }
+      if (previewFrame.contentWindow) {
+        previewFrame.contentWindow.postMessage(
+          { type: "taply-preview-data", profile: previewProfile },
+          "*"
+        );
+      }
+    } catch (e) {}
   }
 
+  // Refresh helper pentru preview-ul de pe telefon.
+  // Pentru că vrei să vezi modificările instant, nu mai folosim niciun debounce aici.
   var liveRefreshPreviewTimer;
   function liveRefreshPreview() {
     clearTimeout(liveRefreshPreviewTimer);
-    liveRefreshPreviewTimer = setTimeout(refreshPreview, 450);
+    try {
+      refreshPreview();
+    } catch (e) {
+      // fallback, în caz că refreshPreview nu e definit încă
+      liveRefreshPreviewTimer = setTimeout(function () {
+        try { refreshPreview(); } catch (e2) {}
+      }, 200);
+    }
   }
   try { window.__taplyLiveRefresh = liveRefreshPreview; } catch (e) {}
 

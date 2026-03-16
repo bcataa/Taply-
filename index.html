@@ -178,7 +178,7 @@
                 </div>
                 <section class="profile-urls-section" id="profileUrlsSection" aria-labelledby="profileUrlsTitle">
                   <h3 class="profile-urls-title" id="profileUrlsTitle">Profile URLs</h3>
-                  <p class="profile-urls-hint" id="socialUrlsLabel">Click + on an icon above to add, − to remove; click the icon to edit. Drag to reorder.</p>
+                  <p class="profile-urls-hint" id="socialUrlsLabel">Add links with + Add above. Edit URL or icon with the pencil; toggle to show or hide on your profile. Drag to reorder.</p>
                   <div class="social-urls" id="socialUrls"></div>
                 </section>
               </div>
@@ -206,6 +206,34 @@
                   </div>
                   <p class="add-modal-subtitle">Choose a platform to add to your profile URLs.</p>
                   <div class="add-profile-grid" id="addProfileGrid"></div>
+                </div>
+              </div>
+              <div class="modal-overlay" id="addProfileUrlModal" hidden aria-modal="true" role="dialog" aria-labelledby="addProfileUrlModalTitle">
+                <div class="modal-box add-modal-box">
+                  <div class="add-modal-header">
+                    <h2 class="add-modal-title" id="addProfileUrlModalTitle">Add profile URL</h2>
+                    <button type="button" class="add-modal-close" id="addProfileUrlModalClose" aria-label="Close">×</button>
+                  </div>
+                  <p class="add-modal-subtitle">Choose an icon and enter your profile link.</p>
+                  <div class="link-form-card">
+                    <label class="field"><span>Icon / Platform</span></label>
+                    <div class="add-profile-url-icon-grid" id="addProfileUrlIconGrid"></div>
+                    <label class="field"><span>URL</span><input type="url" id="addProfileUrlInput" placeholder="https://..." /></label>
+                    <div class="form-actions">
+                      <button type="button" class="ghost" id="addProfileUrlCancel">Cancel</button>
+                      <button type="button" class="primary" id="addProfileUrlSave">Add</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-overlay" id="changeIconModal" hidden aria-modal="true" role="dialog" aria-labelledby="changeIconModalTitle">
+                <div class="modal-box add-modal-box">
+                  <div class="add-modal-header">
+                    <h2 class="add-modal-title" id="changeIconModalTitle">Change icon</h2>
+                    <button type="button" class="add-modal-close" id="changeIconModalClose" aria-label="Close">×</button>
+                  </div>
+                  <p class="add-modal-subtitle">Choose a new platform icon.</p>
+                  <div class="add-profile-url-icon-grid" id="changeIconGrid"></div>
                 </div>
               </div>
               <div class="link-cards" id="linkList"></div>
@@ -281,7 +309,7 @@
                     <a href="/premium" class="design-enhance-btn" target="_blank" rel="noopener">✨ Enhance</a>
                     <button type="button" class="design-undo-btn" aria-label="Undo">↶</button>
                     <button type="button" class="design-redo-btn" aria-label="Redo">↷</button>
-                    <button type="button" class="design-save-btn primary">Save</button>
+                    <button type="button" class="design-save-btn primary" id="designSaveBtn">Salvează</button>
                   </div>
                 </div>
                 <div class="design-intro-main">
@@ -353,7 +381,7 @@
                   <label class="design-field"><span>Title font color</span><div class="design-color-wrap design-color-picker-trigger-wrap"><input type="text" class="design-input design-color-input design-color-input-opens-picker" id="designTitleColor" value="#362630" placeholder="#362630" /><span class="design-color-swatch design-color-swatch-clickable" id="designTitleColorSwatch" role="button" tabindex="0" aria-label="Exemplu culoare titlu – click pentru paletă"></span></div></label>
                   <label class="design-field"><span>Size</span><div class="design-option-row design-option-row-tiles"><button type="button" class="design-option-btn design-option-btn-tile is-selected" data-option="titleSize" data-value="small"><span class="design-option-tile-label">Small</span></button><button type="button" class="design-option-btn design-option-btn-tile" data-option="titleSize" data-value="large"><span class="design-option-bolt" aria-hidden="true">⚡</span><span class="design-option-tile-label">Large</span></button></div></label>
                   <label class="design-field design-field-toggle"><span>Alternative title font</span><span class="design-field-desc">Matches page font by default</span><label class="design-toggle"><input type="checkbox" id="designAlternativeTitleFont" /><span></span></label></label>
-                  <label class="design-field design-field-title-font" id="designTitleFontWrap" hidden><span>Title font</span><button type="button" class="design-title-font-trigger" id="designTitleFontTrigger" aria-haspopup="dialog" aria-expanded="false">DM Sans</button></label>
+                  <label class="design-field design-field-title-font" id="designTitleFontWrap" hidden><span>Title font</span><button type="button" class="design-title-font-trigger" id="designTitleFontTrigger" aria-haspopup="dialog" aria-expanded="false">DM Sans</button><span class="design-title-font-sample" id="designTitleFontSample">Exemplu titlu</span></label>
                 </div>
               </div>
               <div class="design-subpanel" id="designPanelWallpaper" hidden>
@@ -382,7 +410,7 @@
                   <label class="design-field"><span>Page font</span><select class="design-input design-select" id="designPageFont"><option value="DM Sans">DM Sans</option><option value="Inter">Inter</option><option value="Playfair Display">Playfair Display</option></select></label>
                   <label class="design-field"><span>Page text color</span><div class="design-color-wrap"><input type="text" class="design-input design-color-input" id="designPageTextColor" value="#362630" /><span class="design-color-swatch" id="designPageTextColorSwatch"></span></div></label>
                   <label class="design-field design-field-toggle"><span>Alternative title font</span><span class="design-field-desc">Matches page font by default</span><label class="design-toggle"><input type="checkbox" id="designAltTitleFontText" /><span></span></label></label>
-                  <label class="design-field design-field-title-font" id="designTitleFontWrapText" hidden><span>Title font</span><button type="button" class="design-title-font-trigger" id="designTitleFontTriggerText" aria-haspopup="dialog">DM Sans</button></label>
+                  <label class="design-field design-field-title-font" id="designTitleFontWrapText" hidden><span>Title font</span><button type="button" class="design-title-font-trigger" id="designTitleFontTriggerText" aria-haspopup="dialog">DM Sans</button><span class="design-title-font-sample" id="designTitleFontSampleText">Exemplu titlu</span></label>
                   <label class="design-field"><span>Title size</span><div class="design-option-row design-option-row-tiles"><button type="button" class="design-option-btn design-option-btn-tile is-selected" data-option="titleSize" data-value="small"><span class="design-option-tile-label">Small</span></button><button type="button" class="design-option-btn design-option-btn-tile" data-option="titleSize" data-value="large"><span class="design-option-tile-label">Large</span></button></div></label>
                 </div>
               </div>

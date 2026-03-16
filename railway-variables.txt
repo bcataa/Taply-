@@ -1,0 +1,10 @@
+# Copiază în Railway → Variables (Name = prima coloană, Value = a doua)
+# Nu push acest fișier – e în .gitignore
+
+SUPABASE_URL=https://jumrmvpeyrayylolfxgh.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1bXJtdnBleXJheXlsb2xmeGdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDkwNjU0MCwiZXhwIjoyMDg2NDgyNTQwfQ.DnQ7oft1MIt8nHE8sfU5U74Ux7_mGjD0h-fDOeN1ACs
+SUPABASE_JWT_SECRET=1ZSSQRXGdub6SzYpS9jnTeGnrX7/V6V166xeOgxWDM2pj//HmDLqaqFDavRF4KEV7oabqjhhM3PdKGXH8yOV6A==
+STRIPE_SECRET_KEY=sk_test_51T5Y4WRemkLMd6rSRWXsp8yGX9TlytcJZE5M976PJDdkYyzJQ4aHCnXAyHEehmqQYLXw1JFjSdzp1l6KdXLXEM0000EynfuW6T
+STRIPE_PRICE_ID_PREMIUM=price_1T5YHERemkLMd6rSHbs0TqBv
+STRIPE_WEBHOOK_SECRET=whsec_AqLuyevf4KYoBTXnzNK2D56roGjk4Jt1
+BASE_URL=https://www.slebb.com

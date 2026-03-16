@@ -4,8 +4,10 @@ const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 
 const app = express();
+app.use(compression());
 const PORT = process.env.PORT || 8001;
 const DATA_DIR = path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
@@ -282,6 +284,7 @@ function profileToPublicJson(username, p) {
 }
 
 // GET /api/profile/:username - profil public (pentru link)
+// Fără cache ca modificările salvate să apară imediat pe pagina publică
 app.get("/api/profile/:username", (req, res) => {
   const username = (req.params.username || "").toLowerCase();
   res.set("Cache-Control", "no-store");

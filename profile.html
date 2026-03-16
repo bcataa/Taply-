@@ -21,6 +21,9 @@
     />
   </head>
   <body id="profilePage">
+    <script>
+      (function(){var q=new URLSearchParams(window.location.search);if(q.get("preview")==="1"||q.get("embed")==="1"){document.documentElement.classList.add("profile-embed","profile-embed-loading");}})();
+    </script>
     <header class="live-header">
       <a href="/landing" class="live-logo-link" aria-label="Open Taply home">
         <img src="/favicon.svg" alt="" class="live-logo-img" width="24" height="24" />
@@ -44,7 +47,8 @@
           <img class="live-title-logo live-title-logo-classic" id="liveTitleLogoClassic" alt="" hidden />
         </div>
         <p class="live-bio" id="liveBio"></p>
-        <div class="live-social" id="liveSocial"></div>
+        <div class="live-social live-social-icons-only" id="liveSocial" aria-label="Social links"></div>
+        <div class="live-profile-urls" id="liveProfileUrls"></div>
         <div class="live-links" id="liveLinks"></div>
       </div>
     </div>
@@ -53,7 +57,9 @@
         var params = new URLSearchParams(window.location.search);
         var username = params.get("u");
         var isEmbed = params.get("embed") === "1";
-        if (isEmbed) {
+        var isPreview = params.get("preview") === "1";
+        var isLivePhone = params.get("live") === "1";
+        if (isEmbed || isPreview) {
           document.body.classList.add("profile-embed");
           var header = document.querySelector(".live-header");
           if (header) header.style.display = "none";
@@ -66,9 +72,22 @@
           }
         }
         var apiBase = window.location.origin;
+        var LOCAL_PREVIEW_STORAGE_KEY = "taply_profile";
+
+        // Mod „live” pentru telefon: dacă deschizi linkul cu ?live=1 pe telefon,
+        // pagina se reîncarcă automat la fiecare câteva secunde ca să vezi schimbările fără să tragi manual.
+        if (isLivePhone && !isPreview && !isEmbed) {
+          setInterval(function () {
+            try {
+              // Folosim reload fără cache agresiv ca să prindem modificările imediat.
+              window.location.reload();
+            } catch (e) {}
+          }, 3000);
+        }
 
         function renderFromApi(profile) {
           if (!profile) return;
+          document.documentElement.classList.remove("profile-embed-loading");
           var wrap = document.getElementById("livePageWrap");
           if (!wrap) return;
           var theme = profile.theme || "midnight";
@@ -113,6 +132,7 @@
           var titleFont = design.titleFont || "DM Sans";
           var alternativeTitleFont = !!design.alternativeTitleFont;
           var isHero = headerLayout === "hero";
+          var pageBg = themeColors[theme] || "#f5ede1";
           var liveProfileEl = document.getElementById("liveProfile");
           var liveHeroHalf = document.getElementById("liveHeroHalf");
           var liveClassicHeader = document.getElementById("liveClassicHeader");
@@ -120,17 +140,19 @@
             liveProfileEl.classList.toggle("live-header-layout-hero", isHero);
             liveProfileEl.classList.toggle("live-header-layout-classic", !isHero);
           }
+          if (wrap) wrap.classList.toggle("is-hero-layout", isHero);
           if (liveHeroHalf) {
             liveHeroHalf.hidden = !isHero;
             liveHeroHalf.setAttribute("aria-hidden", isHero ? "true" : "false");
             if (isHero) {
               var heroBg = profile.avatar || "";
-              liveHeroHalf.style.backgroundImage = heroBg ? "url(" + heroBg + ")" : "none";
-              liveHeroHalf.style.backgroundColor = heroBg ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.15)";
+              liveHeroHalf.style.backgroundImage = heroBg
+                ? "url(" + heroBg + ")"
+                : "none";
+              liveHeroHalf.style.backgroundColor = heroBg ? "transparent" : pageBg;
             }
           }
           if (liveClassicHeader) liveClassicHeader.hidden = isHero;
-          var pageBg = themeColors[theme] || "#f5ede1";
           if (wrap) wrap.style.setProperty("--live-page-bg", pageBg);
           var liveAvatar = document.getElementById("liveAvatar");
           var liveAvatarPlaceholder = document.getElementById("liveAvatarPlaceholder");
@@ -166,8 +188,8 @@
           if (titleStyle === "logo" && titleLogoUrl) {
             if (liveName) liveName.hidden = true;
             if (liveNameHero) liveNameHero.hidden = true;
-            if (liveTitleLogo) { liveTitleLogo.src = titleLogoUrl; liveTitleLogo.hidden = false; liveTitleLogo.classList.toggle("live-title-logo-large", titleSize === "large"); }
-            if (liveTitleLogoClassic) { liveTitleLogoClassic.src = titleLogoUrl; liveTitleLogoClassic.hidden = false; liveTitleLogoClassic.classList.toggle("live-title-logo-large", titleSize === "large"); }
+            if (liveTitleLogo) { liveTitleLogo.src = titleLogoUrl; liveTitleLogo.loading = "lazy"; liveTitleLogo.hidden = false; liveTitleLogo.classList.toggle("live-title-logo-large", titleSize === "large"); }
+            if (liveTitleLogoClassic) { liveTitleLogoClassic.src = titleLogoUrl; liveTitleLogoClassic.loading = "lazy"; liveTitleLogoClassic.hidden = false; liveTitleLogoClassic.classList.toggle("live-title-logo-large", titleSize === "large"); }
           } else {
             if (liveName) { liveName.textContent = displayTitle; liveName.hidden = false; applyTitleColorSize(liveName); }
             if (liveNameHero) { liveNameHero.textContent = displayTitle; liveNameHero.hidden = false; applyTitleColorSize(liveNameHero); }
@@ -182,15 +204,88 @@
             bioEl.hidden = true;
           }
 
-          var socialLinks = profile.socialLinks || [];
-          if (socialLinks.length === 0 && (profile.platforms || []).length > 0) {
-            socialLinks = (profile.platforms || []).map(function (key) { return { platform: key, url: (profile.socialUrls || {})[key] || "#" }; });
+          var allSocial = (profile.socialLinks || []).filter(function (e) { return e.enabled !== false; });
+          if (allSocial.length === 0 && (profile.platforms || []).length > 0) {
+            allSocial = (profile.platforms || []).map(function (key) { return { platform: key, url: (profile.socialUrls || {})[key] || "#" }; });
           }
-          var socialEl = document.getElementById("liveSocial");
+          var stripLinks = allSocial.filter(function (e) { return e.origin === "strip"; });
+          var addLinks = allSocial.filter(function (e) { return e.origin !== "strip"; });
           var simpleIconsCdn = "https://cdn.simpleicons.org";
-          var platformSlugs = { instagram: "instagram", whatsapp: "whatsapp", tiktok: "tiktok", youtube: "youtube", website: "globe", spotify: "spotify", threads: "threads", facebook: "facebook", x: "x", soundcloud: "soundcloud", snapchat: "snapchat", pinterest: "pinterest", steam: "steam", telegram: "telegram", discord: "discord", twitch: "twitch" };
-          /* Profile URLs: doar în dashboard (cutie), nu pe pagina publică */
-          if (socialEl) socialEl.hidden = true;
+          var platformSlugs = { instagram: "instagram", whatsapp: "whatsapp", tiktok: "tiktok", youtube: "youtube", website: "globe", spotify: "spotify", threads: "threads", facebook: "facebook", x: "x", soundcloud: "soundcloud", snapchat: "snapchat", pinterest: "pinterest", steam: "steam", telegram: "telegram", discord: "discord", twitch: "twitch", email: "gmail" };
+          var platformLabelsPub = { instagram: "Instagram", whatsapp: "WhatsApp", tiktok: "TikTok", youtube: "YouTube", website: "Website", spotify: "Spotify", threads: "Threads", facebook: "Facebook", x: "X", soundcloud: "SoundCloud", snapchat: "Snapchat", pinterest: "Pinterest", steam: "Steam", telegram: "Telegram", discord: "Discord", twitch: "Twitch", email: "Email" };
+          var socialEl = document.getElementById("liveSocial");
+          if (socialEl) {
+            if (stripLinks.length > 0) {
+              socialEl.hidden = false;
+              socialEl.innerHTML = "";
+              stripLinks.forEach(function (entry) {
+                var key = (entry.platform || "").toLowerCase();
+                var url = (entry.url || "").trim();
+                var hasUrl = url && url !== "#";
+                var slug = platformSlugs[key];
+                var label = platformLabelsPub[key] || key;
+                var el = hasUrl ? document.createElement("a") : document.createElement("span");
+                if (hasUrl) { el.href = url; el.target = "_blank"; el.rel = "noopener"; }
+                el.className = "live-social-icon-btn";
+                el.setAttribute("aria-label", label);
+                if (slug) {
+                  var img = document.createElement("img");
+                  img.src = simpleIconsCdn + "/" + slug;
+                  img.alt = "";
+                  img.className = "live-social-icon-btn-img";
+                  img.loading = "lazy";
+                  el.appendChild(img);
+                } else {
+                  var span = document.createElement("span");
+                  span.className = "live-social-icon-btn-letter";
+                  span.textContent = label.charAt(0);
+                  el.appendChild(span);
+                }
+                socialEl.appendChild(el);
+              });
+            } else {
+              socialEl.hidden = true;
+            }
+          }
+          var profileUrlsEl = document.getElementById("liveProfileUrls");
+          if (profileUrlsEl && addLinks.length > 0) {
+            profileUrlsEl.hidden = false;
+            profileUrlsEl.innerHTML = "";
+            addLinks.forEach(function (entry) {
+              var key = (entry.platform || "").toLowerCase();
+              var url = (entry.url || "").trim();
+              var hasUrl = url && url !== "#";
+              var slug = platformSlugs[key];
+              var label = platformLabelsPub[key] || key;
+              var el = hasUrl ? document.createElement("a") : document.createElement("span");
+              if (hasUrl) { el.href = url; el.target = "_blank"; el.rel = "noopener"; }
+              el.className = "live-link live-link-with-logo live-social-profile-link live-profile-url-link" + (hasUrl ? "" : " live-social-icon-only");
+              var logoWrap = document.createElement("span");
+              logoWrap.className = "live-link-logo";
+              if (slug) {
+                var logoImg = document.createElement("img");
+                logoImg.src = simpleIconsCdn + "/" + slug;
+                logoImg.alt = "";
+                logoImg.className = "live-link-logo-img";
+                logoImg.loading = "lazy";
+                logoWrap.appendChild(logoImg);
+              } else {
+                logoWrap.classList.add("live-link-logo-placeholder");
+                logoWrap.textContent = label.charAt(0);
+              }
+              var textWrap = document.createElement("span");
+              textWrap.className = "live-link-text";
+              var titleSpan = document.createElement("span");
+              titleSpan.className = "live-link-title";
+              titleSpan.textContent = label;
+              textWrap.appendChild(titleSpan);
+              el.appendChild(logoWrap);
+              el.appendChild(textWrap);
+              profileUrlsEl.appendChild(el);
+            });
+          } else if (profileUrlsEl) {
+            profileUrlsEl.hidden = true;
+          }
 
           var linkIconSlugs = { youtube: "youtube", instagram: "instagram", tiktok: "tiktok", website: "globe", spotify: "spotify", steam: "steam", telegram: "telegram", discord: "discord", twitch: "twitch", link: "link" };
           function linkDomain(url) {
@@ -219,6 +314,7 @@
               img.src = link.imageUrl;
               img.alt = link.title || "";
               img.className = "live-link-image";
+              img.loading = "lazy";
               a.appendChild(img);
             } else {
               a.className = a.className + " live-link-with-logo";
@@ -249,6 +345,7 @@
               a.appendChild(textWrap);
             }
             a.addEventListener("click", function () {
+              if (isPreview || !username) return;
               fetch(apiBase + "/api/profile/" + encodeURIComponent(username) + "/click", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -259,7 +356,20 @@
           });
         }
 
+        function renderFromLocalStorage() {
+          try {
+            var raw = localStorage.getItem(LOCAL_PREVIEW_STORAGE_KEY);
+            if (!raw) return showEmpty();
+            var profile = JSON.parse(raw);
+            if (!profile || typeof profile !== "object") return showEmpty();
+            renderFromApi(profile);
+          } catch (e) {
+            showEmpty();
+          }
+        }
+
         function showEmpty() {
+          if (isPreview) return;
           var liveProfile = document.getElementById("liveProfile");
           if (liveProfile) liveProfile.innerHTML = "<p class='live-empty'>Profile not found or invalid link. <a href='/dashboard' target='_top'>Taply</a></p>";
           document.body.classList.add("live-page", "theme-minimal");
@@ -267,7 +377,31 @@
           if (wrap) wrap.classList.add("live-page", "theme-minimal");
         }
 
-        if (username) {
+        if (isPreview) {
+          var hasPreviewData = false;
+          var previewPingTimer = null;
+          // In preview mode, render only from parent messages (faster, no API dependency).
+          window.addEventListener("message", function (event) {
+            if (!event || !event.data) return;
+            if (event.data.type === "taply-preview-data" && event.data.profile) {
+              hasPreviewData = true;
+              if (previewPingTimer) { clearInterval(previewPingTimer); previewPingTimer = null; }
+              renderFromApi(event.data.profile);
+              return;
+            }
+            if (event.data.type === "taply-preview-refresh") {
+              // Backward-compat fallback: if no data arrives, try local storage.
+              renderFromLocalStorage();
+            }
+          });
+          try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "taply-preview-ready" }, "*"); } catch (e) {}
+          previewPingTimer = setInterval(function () {
+            if (hasPreviewData) return;
+            try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "taply-preview-ready" }, "*"); } catch (e) {}
+          }, 700);
+          // Fallback only if parent messages don't arrive.
+          setTimeout(function () { if (!hasPreviewData) renderFromLocalStorage(); }, 900);
+        } else if (username) {
           fetch(apiBase + "/api/profile/" + encodeURIComponent(username) + "?_=" + Date.now())
             .then(function (r) {
               if (!r.ok) throw new Error();
